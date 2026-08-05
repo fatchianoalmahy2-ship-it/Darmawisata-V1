@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "students": {
+      "title": "Students",
+      "description": "Daftar siswa peserta darmawisata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nis": { "type": "string" },
+        "name": { "type": "string" },
+        "className": { "type": "string" },
+        "gender": { "type": "string", "enum": ["L", "P"] },
+        "shirtSize": { "type": "string" },
+        "busNumber": { "type": "number" },
+        "seatNumber": { "type": "number" },
+        "roomNumber": { "type": "number" },
+        "isRegistered": { "type": "boolean" },
+        "parentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "nis", "name", "className", "gender"]
+    },
+    "classes": {
+      "title": "Classes",
+      "description": "Daftar kelas SMK PGRI 2 Ponorogo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "waliKelasName": { "type": "string" },
+        "waliKelasNip": { "type": "string" },
+        "waliKelasPhone": { "type": "string" },
+        "busNumber": { "type": "number" },
+        "major": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Konfigurasi global darmawisata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "eventName": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "departureDate": { "type": "string" },
+        "returnDate": { "type": "string" },
+        "destinations": { "type": "array" },
+        "defaultBusCapacity": { "type": "number" },
+        "defaultRoomCapacity": { "type": "number" },
+        "waliKelasParticipationThreshold": { "type": "number" },
+        "headmasterName": { "type": "string" },
+        "headmasterNip": { "type": "string" },
+        "committeeHeadName": { "type": "string" },
+        "committeeHeadNip": { "type": "string" },
+        "headerLogoUrl": { "type": "string" },
+        "showAngketSearchButton": { "type": "boolean" }
+      },
+      "required": ["id", "eventName"]
+    },
+    "rundowns": {
+      "title": "Rundowns",
+      "description": "Jadwal dan destinasi wisata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "day": { "type": "number" },
+        "time": { "type": "string" },
+        "activity": { "type": "string" },
+        "location": { "type": "string" },
+        "category": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "day", "time", "activity", "location"]
+    }
+  }
+}

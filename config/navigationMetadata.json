@@ -1,0 +1,54 @@
+{
+  "publicMenus": [
+    {
+      "id": "ANGKET",
+      "label": "Formulir Angket",
+      "icon": "FileSpreadsheet",
+      "description": "Pengisian Peminatan & Ukuran Kaos"
+    },
+    {
+      "id": "RUNDOWN",
+      "label": "Jadwal & Rundown",
+      "icon": "Clock",
+      "description": "Agenda Kegiatan Tour Bali & Jogja"
+    },
+    {
+      "id": "KAOS_DESAIN",
+      "label": "Desain Kaos",
+      "icon": "Shirt",
+      "description": "Pratinjau & Pilihan Ukuran Kaos"
+    },
+    {
+      "id": "REKAP_PUBLIK",
+      "label": "Statistik & Rekap",
+      "icon": "BarChart3",
+      "description": "Progres Pengisian Per Kelas"
+    }
+  ],
+  "adminMenus": [
+    {
+      "id": "ADMIN",
+      "label": "Dashboard Admin",
+      "icon": "ShieldCheck",
+      "description": "Kelola Data Master & Angket"
+    },
+    {
+      "id": "WALIKELAS_PANEL",
+      "label": "Monitoring Wali Kelas",
+      "icon": "Users",
+      "description": "Pantau Progres Kelas"
+    },
+    {
+      "id": "BUS_MANAGEMENT",
+      "label": "Plotting Bus",
+      "icon": "Bus",
+      "description": "Alokasi Kursi & Armada"
+    },
+    {
+      "id": "ROOM_MANAGEMENT",
+      "label": "Plotting Kamar",
+      "icon": "Bed",
+      "description": "Alokasi Kamar Hotel"
+    }
+  ]
+}

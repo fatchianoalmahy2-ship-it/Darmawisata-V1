@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+@layer utilities {
+  /* Scrollbar hide helper */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Standardized UI Button Utility Classes */
+  .btn-standard {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.75rem; /* 44px standard touch target */
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 0.75rem; /* 12px rounded */
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background-color: #059669; /* emerald-600 */
+    color: #ffffff;
+  }
+  .btn-primary:hover {
+    background-color: #047857; /* emerald-700 */
+  }
+
+  .btn-secondary {
+    background-color: #0f172a; /* slate-900 */
+    color: #ffffff;
+  }
+  .btn-secondary:hover {
+    background-color: #1e293b; /* slate-800 */
+  }
+
+  .btn-outline {
+    background-color: #ffffff;
+    color: #334155; /* slate-700 */
+    border: 1px solid #cbd5e1; /* slate-300 */
+  }
+  .btn-outline:hover {
+    background-color: #f8fafc; /* slate-50 */
+    border-color: #94a3b8; /* slate-400 */
+  }
+
+  .btn-danger {
+    background-color: #e11d48; /* rose-600 */
+    color: #ffffff;
+  }
+  .btn-danger:hover {
+    background-color: #be123c; /* rose-700 */
+  }
+
+  .btn-accent {
+    background-color: #2563eb; /* blue-600 */
+    color: #ffffff;
+  }
+  .btn-accent:hover {
+    background-color: #1d4ed8; /* blue-700 */
+  }
+}
+
+/* --- A4 Paper Sheet Styling for Screen Preview --- */
+.printable-area {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  width: 210mm !important;
+  max-width: 100% !important;
+  min-height: 297mm !important;
+  padding: 15mm !important;
+  margin: 0 auto !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 4px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  font-family: 'Times New Roman', Times, Serif, Georgia, serif !important;
+}
+
+/* Image boundary constraints inside A4 paper preview */
+.printable-area img {
+  max-width: 100% !important;
+  max-height: 80px !important;
+  object-fit: contain !important;
+}
+
+/* On mobile/tablet screens, gracefully adapt the A4 paper box width */
+@media screen and (max-width: 220mm) {
+  .printable-area {
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 10mm 6mm !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+}
+
+/* Global Print Styles for High-Quality Official PDF Printing */
+@media print {
+  @page {
+    size: A4 portrait !important;
+    margin: 10mm 10mm 10mm 10mm !important; /* Standard 10mm A4 print margins */
+  }
+
+  /* Hide non-printable elements strictly */
+  header,
+  footer,
+  aside,
+  nav,
+  button,
+  select,
+  input,
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  /* Reset body and page containers for pure white background */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Force wrapper containers to display as block, removing flex/grid constraints that break print pagination */
+  main,
+  div.min-h-screen,
+  div.flex-1 {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Force printable areas to take full page width without rounded borders or shadows */
+  .printable-area,
+  #printable-recap,
+  #printable-surat,
+  #printable-bus,
+  #printable-room,
+  #printable-rundown,
+  #printable-admin {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    font-size: 11px !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #333333 !important;
+    padding: 5px 6px !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    font-size: 11px !important;
+  }
+
+  /* Avoid page breaks inside cards or signatures */
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

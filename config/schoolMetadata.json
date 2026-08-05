@@ -1,0 +1,133 @@
+{
+  "school": {
+    "organization": "PERWAKILAN YAYASAN PEMBINA LEMBAGA PENDIDIKAN PERSATUAN GURU REPUBLIK INDONESIA (YPLP-PGRI)",
+    "district": "KABUPATEN PONOROGO - JAWA TIMUR",
+    "name": "SMK PGRI 2 PONOROGO",
+    "accreditation": "TERAKREDITASI A",
+    "address": "Jl. Soekarno - Hatta, Kertosari, Babadan, Ponorogo, Telp. 0352-461821/Fax. 0352-462659",
+    "website": "smkpgri2ponorogo.com",
+    "email": "smkpgri2ponorogo@yahoo.com",
+    "headmaster": "Agus Pariadi, S. S.",
+    "travelAgency": "Biro Fiesta Tour and Travel Kabupaten Ponorogo",
+    "letterNumber": "455 / E / Yay.II / IX / 2025"
+  },
+  "waves": [
+    {
+      "id": "BALI_GEL_1",
+      "destination": "BALI",
+      "name": "Bali Gelombang I",
+      "dates": "07 – 11 November 2025",
+      "price": 1600000,
+      "formattedPrice": "Rp 1.600.000,-"
+    },
+    {
+      "id": "BALI_GEL_2",
+      "destination": "BALI",
+      "name": "Bali Gelombang II",
+      "dates": "14 – 18 November 2025",
+      "price": 1600000,
+      "formattedPrice": "Rp 1.600.000,-"
+    },
+    {
+      "id": "YOGYA_GEL_1",
+      "destination": "YOGYAKARTA",
+      "name": "Yogyakarta Gelombang I",
+      "dates": "15 – 16 November 2025",
+      "price": 850000,
+      "formattedPrice": "Rp 850.000,-"
+    }
+  ],
+  "baliDestinations": [
+    "Pantai Tanah Lot",
+    "Pantai Melasti",
+    "Pantai Pandawa",
+    "Garuda Wisnu Kencana (GWK)",
+    "Dewata T-Shirt",
+    "Tari Barong dan Keris",
+    "Cening Bagus",
+    "Sangeh",
+    "Pantai Kuta Beach",
+    "Karang Kurnia",
+    "Joger (Pabrik Kata-Kata)",
+    "Danau Bedugul",
+    "Jimbaran Sunset Dinner"
+  ],
+  "yogyaDestinations": [
+    "Gua Pindul",
+    "Pantai Sepanjang",
+    "Malioboro",
+    "Lava Tour Merapi"
+  ],
+  "tShirtSizes": [
+    { "size": "S", "chest": "48 cm", "length": "68 cm" },
+    { "size": "M", "chest": "50 cm", "length": "70 cm" },
+    { "size": "L", "chest": "52 cm", "length": "72 cm" },
+    { "size": "XL", "chest": "54 cm", "length": "74 cm" },
+    { "size": "XXL", "chest": "56 cm", "length": "76 cm" },
+    { "size": "3XL", "chest": "58 cm", "length": "78 cm" },
+    { "size": "4XL", "chest": "60 cm", "length": "80 cm" }
+  ],
+  "rundowns": {
+    "BALI": [
+      { "day": 1, "time": "13:00", "activity": "Kumpul di Sekolah & Pembekalan Tour", "location": "Halaman SMK PGRI 2 Ponorogo", "notes": "Cek perbekalan & ID Card" },
+      { "day": 1, "time": "14:30", "activity": "Keberangkatan Armada Bus menuju Pelabuhan Ketapang", "location": "Perjalanan Bus", "notes": "Makan Malam & Istirahat di Rest Area" },
+      { "day": 2, "time": "05:00", "activity": "Penyeberangan Selat Bali & Transit Pagi", "location": "Pelabuhan Gilimanuk", "notes": "Mandi & Sarapan" },
+      { "day": 2, "time": "08:30", "activity": "Wisata Budaya GWK (Garuda Wisnu Kencana)", "location": "GWK Cultural Park", "notes": "Foto bersama per kelas" },
+      { "day": 2, "time": "12:00", "activity": "Wisata Pantai Pandawa & Makan Siang", "location": "Pantai Pandawa", "notes": "Acara bebas" },
+      { "day": 2, "time": "15:30", "activity": "Kunjungan Pantai Melasti", "location": "Pantai Melasti", "notes": "Keindahan tebing kapur" },
+      { "day": 2, "time": "18:30", "activity": "Makan Malam Seafood Jimbaran & Check-in Hotel", "location": "Jimbaran Beach & Hotel Bali", "notes": "Pembagian kunci kamar" },
+      { "day": 3, "time": "08:00", "activity": "Pertunjukan Tari Barong & Keris", "location": "Batubulan", "notes": "Seni Budaya Bali" },
+      { "day": 3, "time": "11:00", "activity": "Pusat Oleh-Oleh Dewata T-Shirt & Cening Bagus", "location": "Oleh-oleh Bali", "notes": "Pencocokan kaos peserta" },
+      { "day": 3, "time": "14:00", "activity": "Wisata Edukasi Hutan Kera Sangeh", "location": "Sangeh Monkey Forest", "notes": "Hati-hati dengan barang bawaan" },
+      { "day": 3, "time": "17:00", "activity": "Nikmati Sunset Pantai Kuta Beach", "location": "Pantai Kuta", "notes": "Pantai Kuta Bali" },
+      { "day": 4, "time": "08:00", "activity": "Check-out Hotel & Kunjungan Pabrik Joger", "location": "Joger Kuta", "notes": "Kata-kata khas Joger" },
+      { "day": 4, "time": "11:30", "activity": "Wisata Danau Bedugul / Ulun Danu", "location": "Bedugul", "notes": "Udara sejuk & foto panorama" },
+      { "day": 4, "time": "15:00", "activity": "Wisata Pura Tanah Lot", "location": "Tanah Lot", "notes": "Persiapan pulang" },
+      { "day": 4, "time": "19:00", "activity": "Perjalanan Kembali ke Ponorogo via Pelabuhan Gilimanuk", "location": "Gilimanuk - Ketapang", "notes": "Istirahat di Bus" },
+      { "day": 5, "time": "06:00", "activity": "Tiba di SMK PGRI 2 Ponorogo", "location": "SMK PGRI 2 Ponorogo", "notes": "Kembali ke keluarga masing-masing" }
+    ],
+    "YOGYAKARTA": [
+      { "day": 1, "time": "05:00", "activity": "Keberangkatan menuju Gunungkidul Yogyakarta", "location": "Halaman SMK PGRI 2 Ponorogo", "notes": "Bus AC Seat 2-2" },
+      { "day": 1, "time": "09:00", "activity": "Cave Tubing Gua Pindul", "location": "Gua Pindul Gunungkidul", "notes": "Perlengkapan pelampung gratis" },
+      { "day": 1, "time": "13:00", "activity": "Makan Siang & Wisata Pantai Sepanjang", "location": "Pantai Sepanjang", "notes": "Bermain air & pasir pantai" },
+      { "day": 1, "time": "17:00", "activity": "Check-in Hotel Yogyakarta & Wisata Malioboro", "location": "Malioboro & Hotel Yogya", "notes": "Belanja batik & kuliner" },
+      { "day": 2, "time": "08:00", "activity": "Check-out Hotel & Lava Tour Merapi Jeep", "location": "Kaliurang Merapi", "notes": "Jeep petualangan Merapi" },
+      { "day": 2, "time": "14:00", "activity": "Pusat Oleh-Oleh Khas Jogja & Perjalanan Pulang", "location": "Pusat Oleh-Oleh", "notes": "Kembali ke Ponorogo" },
+      { "day": 2, "time": "20:00", "activity": "Tiba di SMK PGRI 2 Ponorogo", "location": "SMK PGRI 2 Ponorogo", "notes": "Selesai" }
+    ]
+  },
+  "defaultSettings": {
+    "defaultBusCapacity": 50,
+    "defaultRoomCapacity": 3,
+    "waliKelasParticipationThreshold": 75,
+    "schoolName": "SMK PGRI 2 PONOROGO",
+    "schoolAddress": "Jl. Soekarno - Hatta, Kertosari, Babadan, Ponorogo",
+    "headmasterName": "Agus Pariadi, S. S.",
+    "travelAgency": "Biro Fiesta Tour and Travel Kabupaten Ponorogo",
+    "baliGel1Dates": "07 – 11 November 2025",
+    "baliGel2Dates": "14 – 18 November 2025",
+    "yogyaGel1Dates": "15 – 16 November 2025",
+    "baliPrice": 1600000,
+    "yogyaPrice": 850000,
+    "baliBadge": "TOUR BALI (5 HARI)",
+    "baliTitle": "Pulau Dewata Bali & Sunset Jimbaran",
+    "baliDesc": "Kunjungan objek GWK Cultural Park, Pantai Melasti, Pantai Pandawa, Bedugul, Kuta Beach, Joger, Tari Barong, & Sunset Dinner.",
+    "yogyaBadge": "TOUR YOGYAKARTA (2 HARI)",
+    "yogyaTitle": "Kota Istimewa & Petualangan Merapi",
+    "yogyaDesc": "Wisata Cave Tubing Gua Pindul, Pantai Sepanjang Gunungkidul, Lava Tour Merapi Jeep, Malioboro, & Pusat Oleh-oleh Jogja.",
+    "angketDeadline": "2026-08-15",
+    "isAngketClosed": false,
+    "showAngketSearchButton": false,
+    "appName": "SIM DARMAWISATA",
+    "appLogoUrl": "/smkpgri2ponorogo.png",
+    "headerLogoUrl": "/smkpgri2ponorogo.png",
+    "suratIzinOpeningText": "Yang diselenggarakan oleh SMK PGRI 2 PONOROGO, bekerja sama dengan Biro Fiesta Tour and Travel Kabupaten Ponorogo.",
+    "suratIzinClosingText": "Demikian surat izin ini saya buat dengan sebenar-benarnya untuk dipergunakan sebagaimana mestinya.",
+    "autoRecapEnabled": true,
+    "autoRecapTime": "16:00",
+    "autoRecapTargetGroup": "Grup Panitia Darmawisata SMK PGRI 2",
+    "autoRecapTargetPhone": "",
+    "templateUnregisteredSummary": "*📢 REKAPITULASI LAPORAN SISWA BELUM MENGISI ANGKET DARMAWISATA*\n*{SEKOLAH}*\n*TANGGAL REKAP:* {TANGGAL}\n--------------------------------------------------\n\n*📊 RINGKASAN SEKOLAH:*\n• Total Seluruh Siswa: *{TOTAL_SISWA} Siswa*\n• Sudah Mengisi: *{SUDAH_MENGISI} Siswa ({PERSENTASE}%)*\n• Belum Mengisi: *{BELUM_MENGISI} Siswa*\n\n*🏫 RINCIAN BELUM MENGISI PER KELAS:*\n{RINCIAN_PER_KELAS}\n--------------------------------------------------\n*Catatan Panitia:* Mohon para Wali Kelas membantu mengimbau siswa yang belum mengisi angket.\n*{SEKOLAH} - BISA & HEBAT!* 🚀",
+    "templateClassReminder": "*⚠️ PEMBERITAHUAN / REMINDER PENGISIAN ANGKET DARMAWISATA*\n*{SEKOLAH}*\n--------------------------------------------------\n*KELAS:* {KELAS}\n*WALI KELAS:* {WALI_KELAS}\n*TANGGAL REKAP:* {TANGGAL}\n\n*📊 STATUS PENGISIAN ANGKET:*\n• Total Siswa Kelas: *{TOTAL_SISWA} Siswa*\n• Sudah Mengisi: *{SUDAH_MENGISI} Siswa ({PERSENTASE}%)*\n• Belum Mengisi: *{BELUM_MENGISI} Siswa*\n\n*⚠️ DAFTAR SISWA YANG BELUM MENGISI ANGKET ({BELUM_MENGISI} SISWA):*\n{DAFTAR_NAMA_BELUM}\n\n*📌 HIMBAUAN KEPADA BAPAK/IBU WALI SISWA & SISWA:*\nMohon nama-nama siswa di atas untuk *SEGERA* melakukan pengisian angket peminatan Darmawisata melalui portal resmi sekolah.\n--------------------------------------------------\n*{SEKOLAH} - BISA & HEBAT!* 🚀"
+  }
+}
