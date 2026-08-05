@@ -1,6 +1,9 @@
 import { initializeApp, getApps } from 'firebase/app';
 import {
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   getDoc,
   setDoc,
@@ -65,7 +68,18 @@ export async function getDb() {
 
     const app = getApps().length === 0 ? initializeApp(configToUse) : getApps()[0];
     const databaseId = (configToUse as any).firestoreDatabaseId || '(default)';
-    dbInstance = getFirestore(app, databaseId);
+    
+    try {
+      dbInstance = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      }, databaseId);
+    } catch (cacheErr) {
+      console.warn('Persistent local cache might already be enabled or failed:', cacheErr);
+      dbInstance = getFirestore(app, databaseId);
+    }
+    
     return dbInstance;
   } catch (err) {
     console.error('Gagal menginisialisasi Firestore:', err);
@@ -83,10 +97,6 @@ export async function getInitialStudents(): Promise<Student[]> {
   try {
     const sdk = await getFirebaseSDK();
     if (!sdk) return [];
-
-    const statusRef = sdk.doc(db, 'system', 'status');
-    const statusSnap = await sdk.getDoc(statusRef);
-    const isSeeded = statusSnap.exists() && statusSnap.data()?.studentsSeeded === true;
 
     const students = await studentsRepo.getAll();
 
@@ -108,11 +118,12 @@ export async function getInitialStudents(): Promise<Student[]> {
           delete s.roomNumber;
         }
       });
-      if (!isSeeded) {
-        await sdk.setDoc(statusRef, { studentsSeeded: true }, { merge: true });
-      }
       return students;
     }
+
+    const statusRef = sdk.doc(db, 'system', 'status');
+    const statusSnap = await sdk.getDoc(statusRef);
+    const isSeeded = statusSnap.exists() && statusSnap.data()?.studentsSeeded === true;
 
     if (!isSeeded) {
       await sdk.setDoc(statusRef, { studentsSeeded: true }, { merge: true });
@@ -169,10 +180,6 @@ export async function getInitialClasses(): Promise<SchoolClass[]> {
     const sdk = await getFirebaseSDK();
     if (!sdk) return sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
 
-    const statusRef = sdk.doc(db, 'system', 'status');
-    const statusSnap = await sdk.getDoc(statusRef);
-    const isSeeded = statusSnap.exists() && statusSnap.data()?.classesSeeded === true;
-
     const querySnapshot = await sdk.getDocs(sdk.collection(db, 'classes'));
 
     if (!querySnapshot.empty) {
@@ -182,11 +189,12 @@ export async function getInitialClasses(): Promise<SchoolClass[]> {
         cls.name = normalizeClassName(cls.name);
         classes.push(cls);
       });
-      if (!isSeeded) {
-        await sdk.setDoc(statusRef, { classesSeeded: true }, { merge: true });
-      }
       return sortClassesAlphabetically(classes);
     }
+
+    const statusRef = sdk.doc(db, 'system', 'status');
+    const statusSnap = await sdk.getDoc(statusRef);
+    const isSeeded = statusSnap.exists() && statusSnap.data()?.classesSeeded === true;
 
     if (isSeeded) {
       console.log('Database initialized: Class collection was intentionally cleared by user.');

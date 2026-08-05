@@ -22,6 +22,25 @@ export const LS_CACHE_KEYS = {
   RUNDOWNS: 'sim_darmawisata_cache_rundowns',
 };
 
+const areStudentsEqual = (a: Student[], b: Student[]) => {
+  if (a.length !== b.length) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+};
+
+const areClassesEqual = (a: SchoolClass[], b: SchoolClass[]) => {
+  if (a.length !== b.length) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+};
+
+const areSettingsEqual = (a: AppSettings, b: AppSettings) => {
+  return JSON.stringify(a) === JSON.stringify(b);
+};
+
+const areRundownsEqual = (a: RundownItem[], b: RundownItem[]) => {
+  if (a.length !== b.length) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+};
+
 export function useAppData() {
   const [currentUser, setCurrentUser] = useState<AuthUser>(DEFAULT_PUBLIC_USER);
   const [students, setStudents] = useState<Student[]>([]);
@@ -130,6 +149,7 @@ export function useAppData() {
         setRundowns(parsedRundowns);
         setBuses(finalBuses);
         setRooms(finalRooms);
+        setIsLoaded(true);
       }
     } catch (e: any) {
       console.warn('Fast local storage hydration fallback:', e);
@@ -164,6 +184,7 @@ export function useAppData() {
           setRundowns(cachedRundowns);
           setBuses(finalBuses);
           setRooms(finalRooms);
+          setIsLoaded(true);
         }
 
         // Fetch fresh authoritative data from Firebase
@@ -199,12 +220,31 @@ export function useAppData() {
           );
         }
 
-        setStudents(finalStds);
-        setClasses(initialClss);
-        setSettings(initialStgs);
-        setRundowns(initialRdns);
-        setBuses(finalBuses);
-        setRooms(finalRooms);
+        // Check if there are actual changes before triggering state updates to prevent unneeded re-renders
+        const studentsChanged = !areStudentsEqual(cachedStudents, finalStds);
+        const classesChanged = !areClassesEqual(cachedClasses, initialClss);
+        const settingsChanged = !areSettingsEqual(
+          cachedSettings || (schoolMetadata.defaultSettings as AppSettings),
+          initialStgs
+        );
+        const rundownsChanged = !areRundownsEqual(cachedRundowns, initialRdns);
+
+        if (studentsChanged) {
+          setStudents(finalStds);
+        }
+        if (classesChanged) {
+          setClasses(initialClss);
+        }
+        if (settingsChanged) {
+          setSettings(initialStgs);
+        }
+        if (rundownsChanged) {
+          setRundowns(initialRdns);
+        }
+        if (studentsChanged || settingsChanged) {
+          setBuses(finalBuses);
+          setRooms(finalRooms);
+        }
 
         try {
           localStorage.setItem(LS_CACHE_KEYS.STUDENTS, JSON.stringify(finalStds));
