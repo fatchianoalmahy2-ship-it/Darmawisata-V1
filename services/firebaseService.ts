@@ -11,7 +11,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { Student, SchoolClass, AppSettings, RundownItem } from '@/types';
+import { Student, SchoolClass, AppSettings, RundownItem, AdminCredentials } from '@/types';
 import schoolMetadata from '@/config/schoolMetadata.json';
 import sampleStudentsData from '@/config/sampleStudents.json';
 import schoolClassesData from '@/config/schoolClasses.json';
@@ -270,6 +270,41 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
     await sdk.setDoc(sdk.doc(db, 'settings', 'global'), cleanData(settings), { merge: true });
   } catch (err) {
     console.error('Error saving settings to Firestore:', err);
+  }
+}
+
+export async function getAdminCredentialsFirestore(): Promise<AdminCredentials | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const sdk = await getFirebaseSDK();
+    if (!sdk) return null;
+
+    const ref = sdk.doc(db, 'settings', 'admin');
+    const snap = await sdk.getDoc(ref);
+
+    if (snap.exists()) {
+      return snap.data() as AdminCredentials;
+    }
+    return null;
+  } catch (err) {
+    console.error('Error loading admin credentials from Firestore:', err);
+    return null;
+  }
+}
+
+export async function saveAdminCredentialsFirestore(creds: AdminCredentials): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const sdk = await getFirebaseSDK();
+    if (!sdk) return;
+
+    await sdk.setDoc(sdk.doc(db, 'settings', 'admin'), cleanData(creds), { merge: true });
+  } catch (err) {
+    console.error('Error saving admin credentials to Firestore:', err);
   }
 }
 

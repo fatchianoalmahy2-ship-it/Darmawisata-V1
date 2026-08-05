@@ -66,30 +66,31 @@ export const WaliKelasSidebar: React.FC<WaliKelasSidebarProps> = ({
   ];
 
   const sidebarContent = (
-    <div className="h-full flex flex-col justify-between bg-slate-900 text-slate-100 w-72 shrink-0 border-r border-slate-800 shadow-xl">
-      <div>
-        {/* Top Header */}
-        <div className="p-5 border-b border-slate-800 bg-slate-950/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-md shadow-emerald-600/30">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-extrabold tracking-widest text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
-                Wali Kelas
-              </span>
-              <h2 className="text-sm font-extrabold text-white tracking-tight mt-0.5">
-                Portal {assignedClass}
-              </h2>
-            </div>
+    <div className="h-full flex flex-col justify-between bg-slate-900 text-slate-100 w-72 shrink-0 border-r border-slate-800 shadow-xl overflow-hidden">
+      {/* Top Header */}
+      <div className="p-5 border-b border-slate-800 bg-slate-950/60 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-md shadow-emerald-600/30">
+            <UserCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-extrabold tracking-widest text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
+              Wali Kelas
+            </span>
+            <h2 className="text-sm font-extrabold text-white tracking-tight mt-0.5">
+              Portal {assignedClass}
+            </h2>
           </div>
         </div>
+      </div>
 
+      {/* Scrollable Middle Body */}
+      <div className="flex-1 overflow-y-auto py-3 space-y-4">
         {/* User Card */}
-        <div className="p-4 mx-3 my-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-1.5">
+        <div className="p-4 mx-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-white">{currentUser.name}</span>
-            <Lock className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs font-extrabold text-white truncate max-w-[180px]">{currentUser.name}</span>
+            <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           </div>
           <p className="text-[11px] text-emerald-400 font-semibold">
             SMK PGRI 2 Ponorogo
@@ -125,7 +126,7 @@ export const WaliKelasSidebar: React.FC<WaliKelasSidebarProps> = ({
                   </div>
                 </div>
                 {item.badge && !isActive && (
-                  <span className="text-[9px] font-extrabold uppercase bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded border border-slate-700">
+                  <span className="text-[9px] font-extrabold uppercase bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded border border-slate-700 shrink-0">
                     {item.badge}
                   </span>
                 )}
@@ -136,7 +137,7 @@ export const WaliKelasSidebar: React.FC<WaliKelasSidebarProps> = ({
       </div>
 
       {/* Bottom Footer */}
-      <div className="p-4 border-t border-slate-800 space-y-2 bg-slate-950/40">
+      <div className="p-4 border-t border-slate-800 space-y-2 bg-slate-950/40 shrink-0">
         {onOpenProfileSettings && (
           <button
             onClick={onOpenProfileSettings}

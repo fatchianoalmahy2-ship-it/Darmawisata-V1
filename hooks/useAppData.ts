@@ -135,8 +135,6 @@ export function useAppData() {
       console.warn('Fast local storage hydration fallback:', e);
     }
 
-    setIsLoaded(true);
-
     // Step C: Background sync from IndexedDB & Firebase
     async function backgroundDataSync() {
       try {
@@ -223,9 +221,11 @@ export function useAppData() {
           dbService.putSettings(initialStgs),
           dbService.clearRundowns().then(() => dbService.putRundowns(initialRdns)),
         ]);
+        setIsLoaded(true);
       } catch (err: any) {
         console.error('Background sync failed:', err);
         setLoadError(err.message || 'Error sync data');
+        setIsLoaded(true);
       }
     }
 
@@ -241,6 +241,20 @@ export function useAppData() {
       };
     }
   }, [autoAllocateAllWhenClosed, checkIsAngketClosed]);
+
+  // Keep LocalStorage cache in sync with state updates after initial load
+  useEffect(() => {
+    if (isLoaded) {
+      try {
+        localStorage.setItem(LS_CACHE_KEYS.STUDENTS, JSON.stringify(students));
+        localStorage.setItem(LS_CACHE_KEYS.CLASSES, JSON.stringify(classes));
+        localStorage.setItem(LS_CACHE_KEYS.SETTINGS, JSON.stringify(settings));
+        localStorage.setItem(LS_CACHE_KEYS.RUNDOWNS, JSON.stringify(rundowns));
+      } catch (e) {
+        console.warn('LocalStorage auto-sync failed:', e);
+      }
+    }
+  }, [isLoaded, students, classes, settings, rundowns]);
 
   return {
     currentUser,

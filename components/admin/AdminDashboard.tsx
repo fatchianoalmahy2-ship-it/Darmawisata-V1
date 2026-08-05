@@ -73,11 +73,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="space-y-6 max-w-7xl mx-auto" id="admin-dashboard-container">
       {/* Tab Selector (Standardized Grid Layout) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2.5 sm:gap-3 p-3 bg-white rounded-2xl border border-slate-200 shadow-xs no-print" id="admin-tab-selector">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-8 gap-2.5 sm:gap-3 p-3 bg-white rounded-2xl border border-slate-200 shadow-xs no-print" id="admin-tab-selector">
         <button
           type="button"
           onClick={() => setActiveTab('OVERVIEW')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'OVERVIEW'
               ? 'bg-purple-700 text-white shadow-xs font-black'
               : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200'
@@ -89,7 +89,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('STUDENTS')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'STUDENTS'
               ? 'bg-[#0284c7] text-white shadow-xs font-black'
               : 'bg-sky-50 text-sky-900 hover:bg-sky-100 border border-sky-200'
@@ -101,7 +101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('CLASSES')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'CLASSES'
               ? 'bg-amber-600 text-white shadow-xs font-black'
               : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
@@ -113,7 +113,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('WALI_KELAS')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'WALI_KELAS'
               ? 'bg-[#00875a] text-white shadow-xs font-black'
               : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
@@ -125,7 +125,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('BUSES')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'BUSES'
               ? 'bg-indigo-600 text-white shadow-xs font-black'
               : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200'
@@ -137,7 +137,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('ROOMS')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'ROOMS'
               ? 'bg-teal-600 text-white shadow-xs font-black'
               : 'bg-teal-50 text-teal-900 hover:bg-teal-100 border border-teal-200'
@@ -149,7 +149,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('RUNDOWNS')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'RUNDOWNS'
               ? 'bg-slate-900 text-white shadow-xs font-black'
               : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300'
@@ -161,7 +161,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('QUERIES')}
-          className={`h-11 sm:h-12 py-2.5 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`min-h-[44px] sm:min-h-[48px] py-2 px-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center leading-tight ${
             activeTab === 'QUERIES'
               ? 'bg-orange-600 text-white shadow-xs font-black'
               : 'bg-orange-50 text-orange-900 hover:bg-orange-100 border border-orange-200'

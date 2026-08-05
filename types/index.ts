@@ -154,3 +154,10 @@ export interface SyncTask {
   payload: any;
   timestamp: number;
 }
+
+export interface AdminCredentials {
+  username: string;
+  password: string;
+  name: string;
+}
+

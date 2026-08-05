@@ -72,10 +72,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const currentClassObj = classes.find((c) => c.name === selectedClass) || classes[0];
 
-  const handleAdminSubmit = (e: React.FormEvent) => {
+  const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    const result = AuthService.loginAdmin(adminUsername, adminPassword);
+    const result = await AuthService.loginAdmin(adminUsername, adminPassword);
     if (result.success && result.user) {
       onLoginSuccess(result.user);
       onClose();
@@ -84,11 +84,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
-  const handleWaliSubmit = (e: React.FormEvent) => {
+  const handleWaliSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     const teacherName = currentClassObj?.homeroomTeacher || `Wali Kelas ${selectedClass}`;
-    const result = AuthService.loginWaliKelas(
+    const result = await AuthService.loginWaliKelas(
       selectedClass,
       waliPassword,
       teacherName,

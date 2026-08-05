@@ -97,30 +97,31 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   ];
 
   const sidebarContent = (
-    <div className="h-full flex flex-col justify-between bg-slate-900 text-slate-100 w-72 shrink-0 border-r border-slate-800 shadow-xl">
+    <div className="h-full flex flex-col justify-between bg-slate-900 text-slate-100 w-72 shrink-0 border-r border-slate-800 shadow-xl overflow-hidden">
       {/* Top Header */}
-      <div>
-        <div className="p-5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-600/30">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-black tracking-widest text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30">
-                Super Admin
-              </span>
-              <h2 className="text-sm font-extrabold text-white tracking-tight mt-0.5">
-                Admin Control Center
-              </h2>
-            </div>
+      <div className="p-5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-600/30">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-black tracking-widest text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30">
+              Super Admin
+            </span>
+            <h2 className="text-sm font-extrabold text-white tracking-tight mt-0.5">
+              Admin Control Center
+            </h2>
           </div>
         </div>
+      </div>
 
+      {/* Scrollable Middle Body */}
+      <div className="flex-1 overflow-y-auto py-3 space-y-4">
         {/* User Card */}
-        <div className="p-4 mx-3 my-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-2">
+        <div className="p-4 mx-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-white">{currentUser.name}</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Database Connected"></span>
+            <span className="text-xs font-extrabold text-white truncate max-w-[180px]">{currentUser.name}</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Database Connected"></span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span>Progress Angket:</span>
@@ -157,7 +158,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   </div>
                 </div>
                 {item.badge && !isActive && (
-                  <span className="text-[9px] font-black uppercase bg-slate-800 text-blue-400 px-1.5 py-0.5 rounded border border-slate-700">
+                  <span className="text-[9px] font-black uppercase bg-slate-800 text-blue-400 px-1.5 py-0.5 rounded border border-slate-700 shrink-0">
                     {item.badge}
                   </span>
                 )}
@@ -168,7 +169,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </div>
 
       {/* Bottom Footer & Switch Role */}
-      <div className="p-4 border-t border-slate-800 space-y-2 bg-slate-950/40">
+      <div className="p-4 border-t border-slate-800 space-y-2 bg-slate-950/40 shrink-0">
         {onOpenProfileSettings && (
           <button
             onClick={onOpenProfileSettings}
