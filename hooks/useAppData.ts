@@ -12,8 +12,9 @@ import {
 } from '@/services/firebaseService';
 import { RoomAllocatorEngine } from '@/services/roomAllocator';
 import { SeatAllocatorEngine } from '@/services/seatAllocator';
-import { normalizeClassName } from '@/lib/utils';
+import { normalizeClassName, sortClassesAlphabetically } from '@/lib/utils';
 import schoolMetadata from '@/config/schoolMetadata.json';
+import schoolClassesData from '@/config/schoolClasses.json';
 
 export const LS_CACHE_KEYS = {
   STUDENTS: 'sim_darmawisata_cache_students',
@@ -44,12 +45,20 @@ const areRundownsEqual = (a: RundownItem[], b: RundownItem[]) => {
 export function useAppData() {
   const [currentUser, setCurrentUser] = useState<AuthUser>(DEFAULT_PUBLIC_USER);
   const [students, setStudents] = useState<Student[]>([]);
-  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [classes, setClasses] = useState<SchoolClass[]>(() => {
+    return sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
+  });
   const [settings, setSettings] = useState<AppSettings>(schoolMetadata.defaultSettings as AppSettings);
-  const [rundowns, setRundowns] = useState<RundownItem[]>([]);
+  const [rundowns, setRundowns] = useState<RundownItem[]>(() => {
+    return [
+      ...(schoolMetadata.rundowns.BALI as RundownItem[]).map((r, idx) => ({ ...r, id: `bali_${idx}` })),
+      ...(schoolMetadata.rundowns.YOGYAKARTA as RundownItem[]).map((r, idx) => ({ ...r, id: `yogya_${idx}` })),
+    ].sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
+  });
   const [buses, setBuses] = useState<Bus[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(true); // Load instantly!
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string>('');
 
   const checkIsAngketClosed = useCallback((stgs: AppSettings) => {
@@ -157,6 +166,7 @@ export function useAppData() {
 
     // Step C: Background sync from IndexedDB & Firebase
     async function backgroundDataSync() {
+      setIsSyncing(true);
       try {
         const [rawCachedStudents, rawCachedClasses, cachedSettings, cachedRundowns] = await Promise.all([
           dbService.getAllStudents(),
@@ -266,6 +276,8 @@ export function useAppData() {
         console.error('Background sync failed:', err);
         setLoadError(err.message || 'Error sync data');
         setIsLoaded(true);
+      } finally {
+        setIsSyncing(false);
       }
     }
 
@@ -312,6 +324,7 @@ export function useAppData() {
     rooms,
     setRooms,
     isLoaded,
+    isSyncing,
     loadError,
     isAngketClosed,
     checkIsAngketClosed,

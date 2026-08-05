@@ -20,6 +20,7 @@ import {
   Settings,
   Sparkles,
   User,
+  RotateCw,
 } from 'lucide-react';
 
 interface MainLayoutProps {
@@ -34,6 +35,7 @@ interface MainLayoutProps {
   totalStudentsCount: number;
   registeredStudentsCount: number;
   settings?: AppSettings;
+  isSyncing?: boolean;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
@@ -48,6 +50,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   totalStudentsCount,
   registeredStudentsCount,
   settings,
+  isSyncing = false,
 }) => {
   const [isPublicDrawerOpen, setIsPublicDrawerOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -104,10 +107,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1 rounded-full text-[11px] border border-slate-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>{registeredStudentsCount} / {totalStudentsCount} Siswa Terdaftar ({percentage}%)</span>
-            </div>
+            {isSyncing ? (
+              <div className="flex items-center gap-1.5 bg-emerald-950/40 text-emerald-400 px-3 py-1 rounded-full text-[11px] border border-emerald-800/50">
+                <RotateCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                <span className="font-semibold">Sinkronisasi Awan...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1 rounded-full text-[11px] border border-slate-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>{registeredStudentsCount} / {totalStudentsCount} Siswa Terdaftar ({percentage}%)</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -264,6 +274,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}`}>
                   {isAdmin ? 'Super Admin Workspace' : `Wali Kelas Workspace`}
                 </span>
+                {isSyncing && (
+                  <span className="text-[10px] uppercase font-black bg-amber-500/10 text-amber-700 px-2 py-0.5 rounded flex items-center gap-1 animate-pulse border border-amber-500/20">
+                    <RotateCw className="w-2.5 h-2.5 animate-spin text-amber-600" />
+                    <span>Menyinkronkan...</span>
+                  </span>
+                )}
                 <span className="text-slate-300">/</span>
                 <span className="text-xs font-bold text-slate-500">{getTabTitle()}</span>
               </div>

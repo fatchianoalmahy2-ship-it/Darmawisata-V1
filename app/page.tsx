@@ -59,6 +59,7 @@ function HomePageContent() {
     rooms,
     setRooms,
     isLoaded,
+    isSyncing,
     loadError,
     isAngketClosed,
     checkIsAngketClosed,
@@ -395,6 +396,7 @@ function HomePageContent() {
       totalStudentsCount={students.length}
       registeredStudentsCount={registeredCount}
       settings={settings}
+      isSyncing={isSyncing}
     >
       {activeTab === 'ANGKET' && (
         <AngketForm
