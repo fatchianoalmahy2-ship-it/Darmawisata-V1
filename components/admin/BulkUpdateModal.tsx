@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Student, DestinationType, WaveType } from '@/types';
+import type { Student, DestinationType, WaveType, GenderType } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { Edit3, CheckCircle2, Sparkles } from 'lucide-react';
 
@@ -21,6 +21,7 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
   const [updateDestination, setUpdateDestination] = useState<string>('KEEP');
   const [updateWave, setUpdateWave] = useState<string>('KEEP');
   const [updateSize, setUpdateSize] = useState<string>('KEEP');
+  const [updateGender, setUpdateGender] = useState<string>('KEEP');
 
   const handleExecuteUpdate = () => {
     if (selectedStudents.length === 0) return;
@@ -54,6 +55,10 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
         }
       }
 
+      if (updateGender !== 'KEEP') {
+        copy.gender = updateGender as GenderType;
+      }
+
       return copy;
     });
 
@@ -84,6 +89,22 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
             <option value="BALI">BALI</option>
             <option value="YOGYAKARTA">YOGYAKARTA</option>
             <option value="CLEAR">Kosongkan Tujuan</option>
+          </select>
+        </div>
+
+        {/* Gender Update */}
+        <div>
+          <label className="block text-xs font-extrabold text-slate-800 mb-1">
+            Ubah Jenis Kelamin:
+          </label>
+          <select
+            value={updateGender}
+            onChange={(e) => setUpdateGender(e.target.value)}
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+          >
+            <option value="KEEP">-- Biarkan Tetap (Tidak Diubah) --</option>
+            <option value="LAKI-LAKI">LAKI-LAKI</option>
+            <option value="PEREMPUAN">PEREMPUAN</option>
           </select>
         </div>
 

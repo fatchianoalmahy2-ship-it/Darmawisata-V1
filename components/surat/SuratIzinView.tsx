@@ -166,46 +166,38 @@ export const SuratIzinView: React.FC<SuratIzinViewProps> = ({
 
       const printWindow = window.open('', '_blank');
       if (printWindow) {
+        const headHtml = document.head.innerHTML;
+        const origin = window.location.origin;
+
         printWindow.document.write(`
           <!DOCTYPE html>
           <html lang="id">
             <head>
-              <meta charset="utf-8" />
+              <base href="${origin}" />
+              ${headHtml}
               <title>Surat Resmi - ${settings?.schoolName || schoolMetadata.school.name}</title>
               <style>
                 @page {
                   size: A4 portrait;
-                  margin: 6mm 22mm 10mm 22mm;
+                  margin: 6mm 20mm 10mm 20mm;
                 }
                 * {
-                  box-sizing: border-box;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
                 }
-                body {
+                html, body {
                   margin: 0;
                   padding: 0;
-                  background: #ffffff;
-                  color: #000000;
-                  font-family: 'Times New Roman', Times, Serif, Georgia, serif;
+                  background: #ffffff !important;
                 }
-                .printable-area {
-                  width: 210mm;
-                  margin: 0 auto;
-                  box-sizing: border-box;
-                  font-size: 13px;
-                  line-height: 1.6;
-                  color: #000000;
-                  background-color: #ffffff;
+                /* Hide everything outside of print */
+                .no-print {
+                  display: none !important;
                 }
+                /* Ensure pagination works perfectly */
                 .document-page {
                   page-break-after: always;
                   break-after: page;
-                  padding: 4mm 20mm 10mm 20mm;
-                  min-height: 275mm;
-                  display: flex;
-                  flex-direction: column;
-                  justify-content: space-between;
                 }
                 .document-page:last-child {
                   page-break-after: avoid;
@@ -215,142 +207,30 @@ export const SuratIzinView: React.FC<SuratIzinViewProps> = ({
                   page-break-inside: avoid;
                   break-inside: avoid;
                 }
-                .space-y-6 > * + * { margin-top: 1.5rem; }
-                .space-y-4 > * + * { margin-top: 1rem; }
-                .space-y-3.5 > * + * { margin-top: 0.875rem; }
-                .space-y-3 > * + * { margin-top: 0.75rem; }
-                .space-y-2 > * + * { margin-top: 0.5rem; }
-                .space-y-1.5 > * + * { margin-top: 0.375rem; }
-                .space-y-1 > * + * { margin-top: 0.25rem; }
-                .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                .text-left { text-align: left; }
-                .font-bold { font-weight: bold; }
-                .font-semibold { font-weight: 600; }
-                .font-black { font-weight: 900; }
-                .uppercase { text-transform: uppercase; }
-                .underline { text-decoration: underline; }
-                .pl-6 { padding-left: 1.5rem; }
-                .pl-4 { padding-left: 1rem; }
-                .pt-2 { padding-top: 0.5rem; }
-                .pt-3 { padding-top: 0.75rem; }
-                .pt-4 { padding-top: 1rem; }
-                .pt-8 { padding-top: 2rem; }
-                .pt-10 { padding-top: 2.5rem; }
-                .pb-4 { padding-bottom: 1rem; }
-                .pb-3 { padding-bottom: 0.75rem; }
-                .grid { display: grid; }
-                .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-                .col-span-4 { grid-column: span 4 / span 4; }
-                .col-span-5 { grid-column: span 5 / span 5; }
-                .col-span-7 { grid-column: span 7 / span 7; }
-                .col-span-8 { grid-column: span 8 / span 8; }
-                .flex { display: flex; }
-                .items-center { align-items: center; }
-                .justify-between { justify-content: space-between; }
-                .justify-end { justify-content: flex-end; }
-                .gap-1 { gap: 0.25rem; }
-                .gap-2 { gap: 0.5rem; }
-                .gap-3 { gap: 0.75rem; }
-                .gap-4 { gap: 1rem; }
-                .border-b { border-bottom: 1px solid #000000; }
-                .border-b-2 { border-bottom: 2px solid #000000; }
-                .border-b-4 { border-bottom: 4px solid #000000; }
-                .border-double { border-style: double; }
-                .border { border: 1px solid #000000; }
-                .rounded { border-radius: 4px; }
-                .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
-                .py-0.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
-                .text-xs { font-size: 12px; }
-                .text-sm { font-size: 13px; }
-                .text-base { font-size: 15px; }
-                .text-xl { font-size: 20px; }
-                .text-2xl { font-size: 24px; }
-                .text-red-600 { color: #dc2626 !important; }
-                .font-serif { font-family: 'Times New Roman', Times, serif; }
-                .font-sans { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-                .list-decimal { list-style-type: decimal; }
-                .list-inside { list-style-position: inside; }
-                .shrink-0 { flex-shrink: 0; }
-                .h-20 { height: 5rem; }
-                
-                @media print {
-                  body { margin: 0; padding: 0; background: #ffffff; }
-                  .printable-area { width: 100% !important; padding: 0 !important; border: none !important; box-shadow: none !important; }
-                  .no-print { display: none !important; }
-                }
               </style>
             </head>
-            <body>
-              <div class="printable-area">
+            <body class="bg-white text-slate-900 font-serif leading-relaxed text-[13px]">
+              <div class="box-border">
                 ${printContent}
               </div>
               <script>
+                // Short delay to ensure Next.js external stylesheets are fully loaded
                 setTimeout(function() {
                   window.print();
                   setTimeout(function() {
                     window.close();
                   }, 500);
-                }, 100);
+                }, 750);
               </script>
             </body>
           </html>
         `);
         printWindow.document.close();
       } else {
+        // Fallback to normal print if popup blocker prevents the window
         window.print();
       }
     }
-  };
-
-  // Instant HTML download fallback
-  const handleDownloadHTML = () => {
-    const printContent = document.getElementById('printable-surat-content')?.innerHTML;
-    if (!printContent) return;
-
-    const fullDoc = `<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="utf-8" />
-  <title>Surat_${activeDocTab}_${student?.className || 'Siswa'}.html</title>
-  <style>
-    @page { size: A4 portrait; margin: 6mm 22mm 10mm 22mm; }
-    body { font-family: 'Times New Roman', Times, serif; margin: 20px; color: #000; }
-    .document-page { page-break-after: always; break-after: page; max-width: 210mm; margin: 0 auto 30px auto; padding: 6mm 20mm 10mm 20mm; border: 1px solid #ccc; background: #fff; }
-    .signature-block { page-break-inside: avoid; break-inside: avoid; }
-    .text-center { text-align: center; }
-    .font-bold { font-weight: bold; }
-    .font-black { font-weight: 900; }
-    .uppercase { text-transform: uppercase; }
-    .underline { text-decoration: underline; }
-    .text-red-600 { color: #dc2626 !important; }
-    .border-b-4 { border-bottom: 4px double #000; }
-    .grid { display: grid; }
-    .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-    .col-span-4 { grid-column: span 4 / span 4; }
-    .col-span-5 { grid-column: span 5 / span 5; }
-    .col-span-7 { grid-column: span 7 / span 7; }
-    .col-span-8 { grid-column: span 8 / span 8; }
-    .flex { display: flex; }
-    .justify-end { justify-content: flex-end; }
-  </style>
-</head>
-<body>
-  ${printContent}
-</body>
-</html>`;
-
-    const blob = new Blob([fullDoc], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Surat_${activeDocTab}_${
-      printScope === 'SINGLE' ? student?.name.replace(/\s+/g, '_') : selectedClassBatch
-    }.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const handleOpenStandalone = () => {
@@ -574,11 +454,12 @@ export const SuratIzinView: React.FC<SuratIzinViewProps> = ({
 
           <button
             type="button"
-            onClick={handleDownloadHTML}
-            className="h-9 px-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            onClick={handlePrintWindow}
+            className="h-9 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold border border-slate-200 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Simpan dokumen sebagai PDF berkualitas tinggi (pilih 'Simpan sebagai PDF' di menu tujuan cetak)"
           >
             <Download className="w-3.5 h-3.5 text-slate-600" />
-            <span>Unduh HTML</span>
+            <span>Unduh PDF</span>
           </button>
 
           <button

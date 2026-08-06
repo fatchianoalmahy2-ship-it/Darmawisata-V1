@@ -142,7 +142,7 @@
   /* Force wrapper containers to display as block, removing flex/grid constraints that break print pagination */
   main,
   div.min-h-screen,
-  div.flex-1 {
+  body > div.flex-1 {
     display: block !important;
     width: 100% !important;
     height: auto !important;

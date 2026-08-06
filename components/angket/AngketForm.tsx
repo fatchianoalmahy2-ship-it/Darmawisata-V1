@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Student, DestinationType, WaveType, TShirtSize, WaiverType, AppSettings } from '@/types';
+import { Student, DestinationType, WaveType, TShirtSize, WaiverType, AppSettings, GenderType } from '@/types';
 import schoolMetadata from '@/config/schoolMetadata.json';
 import tshirtDesignA from '@/src/assets/images/tshirt_design_a_1785842351713.jpg';
 import tshirtDesignB from '@/src/assets/images/tshirt_design_b_1785842364932.jpg';
@@ -63,6 +63,7 @@ export const AngketForm: React.FC<AngketFormProps> = ({
   const [parentAddress, setParentAddress] = useState('');
   const [parentPhone, setParentPhone] = useState('');
   const [studentPhone, setStudentPhone] = useState('');
+  const [gender, setGender] = useState<GenderType>('LAKI-LAKI');
   const [medicalHistory, setMedicalHistory] = useState('');
   const [waiverType, setWaiverType] = useState<WaiverType>('NONE');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -184,6 +185,7 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     setWave(found.wave || (dest === 'BALI' ? 'BALI_GEL_1' : 'YOGYA_GEL_1'));
     setTShirtSize(found.tShirtSize || 'L');
     setTShirtDesign(found.tShirtDesign || 'A');
+    setGender(found.gender || 'LAKI-LAKI');
     setParentName(found.parentName || '');
     setParentAddress(found.parentAddress || '');
     setParentPhone(found.parentPhone || '');
@@ -348,6 +350,7 @@ export const AngketForm: React.FC<AngketFormProps> = ({
       wave,
       tShirtSize,
       tShirtDesign,
+      gender,
       parentName,
       parentAddress,
       parentPhone,
@@ -993,6 +996,20 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                     onChange={(e) => setStudentPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Jenis Kelamin Siswa *
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as GenderType)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  >
+                    <option value="LAKI-LAKI">LAKI-LAKI</option>
+                    <option value="PEREMPUAN">PEREMPUAN</option>
+                  </select>
                 </div>
 
                 <div>
