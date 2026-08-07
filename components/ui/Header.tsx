@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
           <span>SMK PGRI 2 PONOROGO — Terakreditasi A</span>
           <span className="hidden sm:inline text-slate-400">|</span>
           <span className="hidden sm:inline text-slate-300">
-            SIM Darmawisata 2025/2026
+            Darmawisata 2025/2026
           </span>
         </div>
 
@@ -191,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">
-              SIM DARMAWISATA
+              Darmawisata
             </h1>
             <p className="text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-wide">
               SMK PGRI 2 PONOROGO — BALI & YOGYAKARTA

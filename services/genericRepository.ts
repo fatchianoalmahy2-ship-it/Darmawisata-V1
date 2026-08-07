@@ -34,12 +34,29 @@ export class GenericFirestoreRepository<T extends EntityWithId> {
     try {
       const sdk = await getFirebaseSDK();
       if (!sdk) return [];
-      const snap = await sdk.getDocs(sdk.collection(db, this.collectionName));
-      const items: T[] = [];
-      snap.forEach((doc: any) => {
-        items.push({ id: doc.id, ...doc.data() } as T);
-      });
-      return items;
+      
+      try {
+        const snap = await sdk.getDocs(sdk.collection(db, this.collectionName));
+        const items: T[] = [];
+        snap.forEach((doc: any) => {
+          items.push({ id: doc.id, ...doc.data() } as T);
+        });
+        return items;
+      } catch (fetchErr: any) {
+        console.warn(`[GenericFirestoreRepository] Remote getDocs for ${this.collectionName} failed (${fetchErr?.message || fetchErr}). Trying local cache fallback...`);
+        try {
+          const { getDocsFromCache } = await import('firebase/firestore');
+          const snap = await getDocsFromCache(sdk.collection(db, this.collectionName));
+          const items: T[] = [];
+          snap.forEach((doc: any) => {
+            items.push({ id: doc.id, ...doc.data() } as T);
+          });
+          return items;
+        } catch (cacheErr) {
+          console.warn(`[GenericFirestoreRepository] Local cache fallback for ${this.collectionName} failed:`, cacheErr);
+          return [];
+        }
+      }
     } catch (err) {
       console.error(`[GenericFirestoreRepository] Error fetching ${this.collectionName}:`, err);
       return [];

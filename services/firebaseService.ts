@@ -74,6 +74,7 @@ export async function getDb() {
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager(),
         }),
+        experimentalForceLongPolling: true,
       }, databaseId);
     } catch (cacheErr) {
       console.warn('Persistent local cache might already be enabled or failed:', cacheErr);
@@ -91,197 +92,188 @@ export async function getDb() {
 // 1. STUDENTS COLLECTION
 // ----------------------------------------------------------------------------
 export async function getInitialStudents(): Promise<Student[]> {
-  const db = await getDb();
-  if (!db) return [];
-
   try {
-    const sdk = await getFirebaseSDK();
-    if (!sdk) return [];
-
-    const students = await studentsRepo.getAll();
-
-    if (students.length > 0) {
-      students.forEach((s) => {
-        s.className = normalizeClassName(s.className);
-        if (!s.isRegistered) {
-          delete s.destination;
-          delete s.wave;
-          delete s.tShirtSize;
-          delete s.tShirtDesign;
-          delete s.parentName;
-          delete s.parentAddress;
-          delete s.parentPhone;
-          delete s.studentPhone;
-          delete s.medicalHistory;
-          delete s.busNumber;
-          delete s.seatNumber;
-          delete s.roomNumber;
-        }
-      });
-      return students;
+    const res = await fetch('/api/db');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.students)) {
+        data.students.forEach((s: Student) => {
+          s.className = normalizeClassName(s.className);
+        });
+        return data.students;
+      }
     }
-
-    const statusRef = sdk.doc(db, 'system', 'status');
-    const statusSnap = await sdk.getDoc(statusRef);
-    const isSeeded = statusSnap.exists() && statusSnap.data()?.studentsSeeded === true;
-
-    if (!isSeeded) {
-      await sdk.setDoc(statusRef, { studentsSeeded: true }, { merge: true });
-    }
-    return [];
   } catch (err) {
-    console.error('Error loading students from Firestore:', err);
-    return [];
+    console.warn('Error fetching students from Cloud SQL /api/db:', err);
   }
+  return [];
 }
 
 export async function saveStudents(students: Student[]): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const sdk = await getFirebaseSDK();
-  if (sdk) {
-    await sdk.setDoc(sdk.doc(db, 'system', 'status'), { studentsSeeded: true }, { merge: true });
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'bulkSaveStudents', payload: students }),
+    });
+  } catch (err) {
+    console.error('Error saving students to Cloud SQL:', err);
   }
-  await studentsRepo.saveBatch(students);
 }
 
 export async function saveSingleStudent(student: Student): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const sdk = await getFirebaseSDK();
-  if (sdk) {
-    await sdk.setDoc(sdk.doc(db, 'system', 'status'), { studentsSeeded: true }, { merge: true });
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'saveStudent', payload: student }),
+    });
+  } catch (err) {
+    console.error('Error saving single student to Cloud SQL:', err);
   }
-  await studentsRepo.saveOne(student);
 }
 
 export async function deleteSingleStudent(studentId: string): Promise<void> {
-  await studentsRepo.deleteOne(studentId);
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteStudent', payload: { studentId } }),
+    });
+  } catch (err) {
+    console.error('Error deleting student from Cloud SQL:', err);
+  }
+}
+
+export async function deleteBatchStudents(studentIds: string[]): Promise<void> {
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteBatchStudents', payload: { studentIds } }),
+    });
+  } catch (err) {
+    console.error('Error deleting batch students from Cloud SQL:', err);
+  }
 }
 
 export async function clearAllStudents(): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const sdk = await getFirebaseSDK();
-  if (sdk) {
-    await sdk.setDoc(sdk.doc(db, 'system', 'status'), { studentsSeeded: true }, { merge: true });
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clearStudents', payload: null }),
+    });
+  } catch (err) {
+    console.error('Error clearing all students from Cloud SQL:', err);
   }
-  await studentsRepo.clearAll();
 }
 
 // ----------------------------------------------------------------------------
 // 2. CLASSES COLLECTION
 // ----------------------------------------------------------------------------
 export async function getInitialClasses(): Promise<SchoolClass[]> {
-  const db = await getDb();
-  if (!db) return sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
-
   try {
-    const sdk = await getFirebaseSDK();
-    if (!sdk) return sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
-
-    const querySnapshot = await sdk.getDocs(sdk.collection(db, 'classes'));
-
-    if (!querySnapshot.empty) {
-      const classes: SchoolClass[] = [];
-      querySnapshot.forEach((d: any) => {
-        const cls = d.data() as SchoolClass;
-        cls.name = normalizeClassName(cls.name);
-        classes.push(cls);
-      });
-      return sortClassesAlphabetically(classes);
+    const res = await fetch('/api/db');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.classes) && data.classes.length > 0) {
+        data.classes.forEach((c: SchoolClass) => {
+          c.name = normalizeClassName(c.name);
+        });
+        return sortClassesAlphabetically(data.classes);
+      }
     }
-
-    const statusRef = sdk.doc(db, 'system', 'status');
-    const statusSnap = await sdk.getDoc(statusRef);
-    const isSeeded = statusSnap.exists() && statusSnap.data()?.classesSeeded === true;
-
-    if (isSeeded) {
-      console.log('Database initialized: Class collection was intentionally cleared by user.');
-      return [];
-    }
-
-    const batch = sdk.writeBatch(db);
-    const initial = sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
-    initial.forEach((cls) => {
-      const ref = sdk.doc(db, 'classes', cls.id);
-      batch.set(ref, cleanData(cls));
-    });
-    batch.set(statusRef, { classesSeeded: true }, { merge: true });
-    await batch.commit();
-    return initial;
   } catch (err) {
-    console.error('Error loading classes from Firestore:', err);
-    return sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
+    console.warn('Error loading classes from Cloud SQL:', err);
   }
+  return sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
 }
 
 export async function saveClasses(classes: SchoolClass[]): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const sdk = await getFirebaseSDK();
-  if (sdk) {
-    await sdk.setDoc(sdk.doc(db, 'system', 'status'), { classesSeeded: true }, { merge: true });
+  try {
+    for (const cls of classes) {
+      await fetch('/api/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'saveClass', payload: cls }),
+      });
+    }
+  } catch (err) {
+    console.error('Error saving classes to Cloud SQL:', err);
   }
-  await classesRepo.saveBatch(classes);
 }
 
 export async function deleteSingleClass(classId: string): Promise<void> {
-  await classesRepo.deleteOne(classId);
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteClass', payload: { classId } }),
+    });
+  } catch (err) {
+    console.error('Error deleting class from Cloud SQL:', err);
+  }
 }
 
 export async function clearAllClasses(): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const sdk = await getFirebaseSDK();
-  if (sdk) {
-    await sdk.setDoc(sdk.doc(db, 'system', 'status'), { classesSeeded: true }, { merge: true });
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clearClasses', payload: null }),
+    });
+  } catch (err) {
+    console.error('Error clearing all classes from Cloud SQL:', err);
   }
-  await classesRepo.clearAll();
 }
 
 // ----------------------------------------------------------------------------
 // 3. SETTINGS DOCUMENT
 // ----------------------------------------------------------------------------
 export async function getInitialSettings(): Promise<AppSettings> {
-  const db = await getDb();
-  if (!db) return schoolMetadata.defaultSettings as AppSettings;
-
   try {
-    const sdk = await getFirebaseSDK();
-    if (!sdk) return schoolMetadata.defaultSettings as AppSettings;
-
-    const ref = sdk.doc(db, 'settings', 'global');
-    const snap = await sdk.getDoc(ref);
-
-    if (snap.exists()) {
-      return snap.data() as AppSettings;
+    const res = await fetch('/api/db');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.settings) {
+        return data.settings;
+      }
     }
-
-    const defaultStg = schoolMetadata.defaultSettings as AppSettings;
-    await sdk.setDoc(ref, defaultStg);
-    return defaultStg;
   } catch (err) {
-    console.error('Error loading settings from Firestore:', err);
-    return schoolMetadata.defaultSettings as AppSettings;
+    console.warn('Error loading settings from Cloud SQL:', err);
   }
+  return schoolMetadata.defaultSettings as AppSettings;
 }
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-
   try {
-    const sdk = await getFirebaseSDK();
-    if (!sdk) return;
-
-    await sdk.setDoc(sdk.doc(db, 'settings', 'global'), cleanData(settings), { merge: true });
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'saveSettings', payload: settings }),
+    });
   } catch (err) {
-    console.error('Error saving settings to Firestore:', err);
+    console.error('Error saving settings to Cloud SQL:', err);
   }
 }
 
 export async function getAdminCredentialsFirestore(): Promise<AdminCredentials | null> {
+  try {
+    const res = await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getAdminCredentials' }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.credentials) return data.credentials;
+    }
+  } catch (err) {
+    console.warn('Error loading admin credentials from DB API:', err);
+  }
+
+  // Fallback to Firestore if configured
   const db = await getDb();
   if (!db) return null;
 
@@ -297,12 +289,23 @@ export async function getAdminCredentialsFirestore(): Promise<AdminCredentials |
     }
     return null;
   } catch (err) {
-    console.error('Error loading admin credentials from Firestore:', err);
+    console.warn('Firestore fallback loading admin credentials:', err);
     return null;
   }
 }
 
 export async function saveAdminCredentialsFirestore(creds: AdminCredentials): Promise<void> {
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'saveAdminCredentials', payload: creds }),
+    });
+  } catch (err) {
+    console.warn('Error saving admin credentials via DB API:', err);
+  }
+
+  // Dual-save to Firestore if available
   const db = await getDb();
   if (!db) return;
 
@@ -312,7 +315,7 @@ export async function saveAdminCredentialsFirestore(creds: AdminCredentials): Pr
 
     await sdk.setDoc(sdk.doc(db, 'settings', 'admin'), cleanData(creds), { merge: true });
   } catch (err) {
-    console.error('Error saving admin credentials to Firestore:', err);
+    console.warn('Firestore fallback saving admin credentials:', err);
   }
 }
 
@@ -320,45 +323,37 @@ export async function saveAdminCredentialsFirestore(creds: AdminCredentials): Pr
 // 4. RUNDOWNS COLLECTION
 // ----------------------------------------------------------------------------
 export async function getInitialRundowns(): Promise<RundownItem[]> {
-  const db = await getDb();
   const defaultItems: RundownItem[] = [
     ...(schoolMetadata.rundowns.BALI as RundownItem[]).map((r, idx) => ({ ...r, id: `bali_${idx}` })),
     ...(schoolMetadata.rundowns.YOGYAKARTA as RundownItem[]).map((r, idx) => ({ ...r, id: `yogya_${idx}` })),
   ];
 
-  if (!db) return defaultItems;
-
   try {
-    const sdk = await getFirebaseSDK();
-    if (!sdk) return defaultItems;
-
-    const querySnapshot = await sdk.getDocs(sdk.collection(db, 'rundowns'));
-
-    if (!querySnapshot.empty) {
-      const items: RundownItem[] = [];
-      querySnapshot.forEach((d: any) => {
-        items.push({ id: d.id, ...d.data() } as RundownItem);
-      });
-      return items.sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
+    const res = await fetch('/api/db');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.rundowns) && data.rundowns.length > 0) {
+        return data.rundowns;
+      }
     }
-
-    const batch = sdk.writeBatch(db);
-    defaultItems.forEach((item) => {
-      const ref = sdk.doc(db, 'rundowns', item.id!);
-      batch.set(ref, cleanData(item));
-    });
-    await batch.commit();
-    return defaultItems;
   } catch (err) {
-    console.error('Error loading rundowns from Firestore:', err);
-    return defaultItems;
+    console.warn('Error loading rundowns from Cloud SQL:', err);
   }
+  return defaultItems;
 }
 
 export async function saveRundownItem(item: RundownItem): Promise<RundownItem> {
   const itemId = item.id || `rd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const itemToSave = { ...item, id: itemId };
-  await rundownsRepo.saveOne(itemToSave);
+  try {
+    await fetch('/api/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'saveRundown', payload: itemToSave }),
+    });
+  } catch (err) {
+    console.error('Error saving rundown item to Cloud SQL:', err);
+  }
   return itemToSave;
 }
 

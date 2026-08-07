@@ -148,6 +148,11 @@ export const dbService = {
   putStudents: (students: Student[]) => idbPutBatch('students', students),
   putSingleStudent: (student: Student) => idbPutOne('students', student),
   deleteStudent: (studentId: string) => idbDeleteOne('students', studentId),
+  deleteBatchStudents: async (studentIds: string[]) => {
+    for (const id of studentIds) {
+      await idbDeleteOne('students', id);
+    }
+  },
   clearStudents: () => idbClearStore('students'),
 
   getAllClasses: () => idbGetAll<SchoolClass>('classes'),
@@ -267,39 +272,81 @@ export const dbService = {
 
   async executeTask(task: SyncTask): Promise<void> {
     const { action, payload } = task;
-    switch (action) {
-      case 'save_students':
-        await saveStudents(payload);
-        break;
-      case 'save_student':
-        await saveSingleStudentFirebase(payload);
-        break;
-      case 'delete_student':
-        await deleteSingleStudentFirebase(payload);
-        break;
-      case 'clear_students':
-        await clearAllStudentsFirebase();
-        break;
-      case 'save_classes':
-        await saveClasses(payload);
-        break;
-      case 'delete_class':
-        await deleteSingleClassFirebase(payload);
-        break;
-      case 'clear_classes':
-        await clearAllClassesFirebase();
-        break;
-      case 'save_settings':
-        await saveSettingsFirebase(payload);
-        break;
-      case 'save_rundown':
-        await saveRundownItemFirebase(payload);
-        break;
-      case 'delete_rundown':
-        await deleteRundownItemFirebase(payload);
-        break;
-      default:
-        console.warn('Unknown sync task action:', action);
+    try {
+      if (action === 'save_student') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'saveStudent', payload }),
+        });
+      } else if (action === 'save_students') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'bulkSaveStudents', payload }),
+        });
+      } else if (action === 'save_classes') {
+        if (Array.isArray(payload)) {
+          for (const cls of payload) {
+            await fetch('/api/db', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'saveClass', payload: cls }),
+            });
+          }
+        } else {
+          await fetch('/api/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'saveClass', payload }),
+          });
+        }
+      } else if (action === 'save_settings') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'saveSettings', payload }),
+        });
+      } else if (action === 'save_rundown') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'saveRundown', payload }),
+        });
+      } else if (action === 'delete_student') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'deleteStudent', payload: { studentId: payload } }),
+        });
+      } else if (action === 'delete_batch_students') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'deleteBatchStudents', payload: { studentIds: payload } }),
+        });
+      } else if (action === 'clear_students') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'clearStudents', payload: null }),
+        });
+      } else if (action === 'delete_class') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'deleteClass', payload: { classId: payload } }),
+        });
+      } else if (action === 'clear_classes') {
+        await fetch('/api/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'clearClasses', payload: null }),
+        });
+      }
+    } catch (e) {
+      console.error(`Failed to execute sync task ${action} for Cloud SQL:`, e);
+      throw e;
     }
   },
 };

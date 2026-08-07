@@ -201,8 +201,8 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     }
   };
 
-  // Strict and Accurate NIS Search Trigger
-  const triggerNisSearch = (
+  // Strict and Accurate NIS Search Trigger with Auto-Sanitization and Server Fallback
+  const triggerNisSearch = async (
     s1: string,
     s2: string,
     s3: string,
@@ -211,9 +211,14 @@ export const AngketForm: React.FC<AngketFormProps> = ({
   ) => {
     setErrorMessage('');
 
+    // Auto-sanitize segments (strip non-alphanumeric except spaces)
+    const cleanS1 = s1.trim().replace(/[^0-9a-zA-Z]/g, '');
+    const cleanS2 = s2.trim().replace(/[^0-9a-zA-Z]/g, '');
+    const cleanS3 = s3.trim().replace(/[^0-9a-zA-Z]/g, '');
+
     let searchStr = '';
-    if (s1 || s2 || s3) {
-      searchStr = `${s1.trim()} / ${s2.trim()} . ${s3.trim()}`;
+    if (cleanS1 || cleanS2 || cleanS3) {
+      searchStr = `${cleanS1} / ${cleanS2} . ${cleanS3}`;
     } else if (rawFallback) {
       searchStr = rawFallback.trim();
     }
@@ -225,27 +230,45 @@ export const AngketForm: React.FC<AngketFormProps> = ({
 
     const normSearch = normalizeNis(searchStr);
 
-    // 1. Exact raw match
+    // 1. Local Exact raw match
     let found = students.find((s) => s.nis.trim().toLowerCase() === searchStr.trim().toLowerCase());
 
-    // 2. Exact normalized match
+    // 2. Local Exact normalized match
     if (!found) {
       found = students.find((s) => normalizeNis(s.nis) === normSearch);
     }
 
-    // 3. Substring match ONLY if not a type change and normalized search term is long enough (>= 4 chars)
+    // 3. Local Substring match ONLY if not a type change and normalized search term is long enough (>= 4 chars)
     if (!found && !isTypeChange && normSearch.length >= 4) {
       found = students.find((s) => normalizeNis(s.nis) === normSearch || normalizeNis(s.nis).startsWith(normSearch));
     }
 
     if (found) {
       populateStudentData(found);
-    } else {
-      setSelectedStudent(null);
-      // Only show error on explicit search or if they typed a long term that doesn't match
-      if (!isTypeChange && normSearch.length >= 3) {
-        setErrorMessage(`Siswa dengan NIS/NISN "${searchStr}" tidak ditemukan. Pastikan angka yang dimasukkan sudah sesuai data kelas.`);
+      return;
+    }
+
+    // 4. Server Fallback Lookup (Lightweight API call if not found in local memory)
+    if (normSearch.length >= 3) {
+      try {
+        const res = await fetch(`/api/student/lookup?nis=${encodeURIComponent(normSearch)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.students) && data.students.length > 0) {
+            const serverFound = data.students[0];
+            populateStudentData(serverFound);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Server fallback NIS search failed:', err);
       }
+    }
+
+    setSelectedStudent(null);
+    // Only show error on explicit search or if they typed a long term that doesn't match
+    if (!isTypeChange && normSearch.length >= 3) {
+      setErrorMessage(`Siswa dengan NIS "${searchStr}" tidak ditemukan. Silakan periksa kembali nomor NIS Anda.`);
     }
   };
 
@@ -255,7 +278,6 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     if (clean.length >= 5) {
       seg2Ref.current?.focus();
     }
-    triggerNisSearch(clean, seg2, seg3, undefined, true);
   };
 
   const handleSeg2Change = (val: string) => {
@@ -264,13 +286,11 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     if (clean.length >= 4) {
       seg3Ref.current?.focus();
     }
-    triggerNisSearch(seg1, clean, seg3, undefined, true);
   };
 
   const handleSeg3Change = (val: string) => {
     const clean = val.replace(/[^0-9]/g, '');
     setSeg3(clean);
-    triggerNisSearch(seg1, seg2, clean, undefined, true);
   };
 
   const handlePasteSegment = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -282,18 +302,30 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     setSeg1(parsed.seg1);
     setSeg2(parsed.seg2);
     setSeg3(parsed.seg3);
-    triggerNisSearch(parsed.seg1, parsed.seg2, parsed.seg3, pasted, false);
+  };
+
+  const handleSeg1KeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      triggerNisSearch(seg1, seg2, seg3);
+    }
   };
 
   const handleSeg2KeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !seg2) {
       seg1Ref.current?.focus();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      triggerNisSearch(seg1, seg2, seg3);
     }
   };
 
   const handleSeg3KeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !seg3) {
       seg2Ref.current?.focus();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      triggerNisSearch(seg1, seg2, seg3);
     }
   };
 
@@ -462,6 +494,7 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                     placeholder="25082"
                     value={seg1}
                     onChange={(e) => handleSeg1Change(e.target.value)}
+                    onKeyDown={handleSeg1KeyDown}
                     onPaste={handlePasteSegment}
                     autoComplete="off"
                     autoCapitalize="none"
@@ -548,10 +581,11 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                   type="text"
                   placeholder="Ketik NIS/NISN lengkap..."
                   value={inputNis}
-                  onChange={(e) => {
-                    setInputNis(e.target.value);
-                    if (e.target.value.trim().length >= 3) {
-                      triggerNisSearch('', '', '', e.target.value);
+                  onChange={(e) => setInputNis(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      triggerNisSearch('', '', '', inputNis);
                     }
                   }}
                   className="w-full pl-4 pr-20 py-3 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-slate-900 text-base focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
@@ -596,7 +630,7 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                   <h4 className="font-bold text-slate-900 text-base">
                     {selectedStudent.name}
                   </h4>
-                  <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-0.5">
                     <span className="font-bold text-emerald-800">
                       NIS: {selectedStudent.nis}
                     </span>
@@ -605,7 +639,23 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                       Kelas: {selectedStudent.className}
                     </span>
                     <span>•</span>
-                    <span>Jenis Kelamin: {selectedStudent.gender}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-slate-700">Jenis Kelamin:</span>
+                      <select
+                        value={gender || selectedStudent.gender || 'LAKI-LAKI'}
+                        onChange={(e) => {
+                          const newGender = e.target.value as GenderType;
+                          setGender(newGender);
+                          const updated = { ...selectedStudent, gender: newGender };
+                          setSelectedStudent(updated);
+                          onSaveStudent(updated);
+                        }}
+                        className="bg-white border border-emerald-300 rounded px-2 py-0.5 text-xs font-bold text-emerald-800 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+                      >
+                        <option value="LAKI-LAKI">LAKI-LAKI</option>
+                        <option value="PEREMPUAN">PEREMPUAN</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -996,20 +1046,6 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                     onChange={(e) => setStudentPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Jenis Kelamin Siswa *
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value as GenderType)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                  >
-                    <option value="LAKI-LAKI">LAKI-LAKI</option>
-                    <option value="PEREMPUAN">PEREMPUAN</option>
-                  </select>
                 </div>
 
                 <div>

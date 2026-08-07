@@ -88,7 +88,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       case 'ADMIN':
         return 'Master Data 1000+ Siswa';
       default:
-        return 'SIM Darmawisata';
+        return 'Darmawisata';
     }
   };
 
@@ -140,7 +140,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               )}
               <div>
                 <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none uppercase">
-                  {settings?.appName || 'SIM DARMAWISATA'}
+                  {settings?.appName || 'Darmawisata'}
                 </h1>
                 <p className="text-[11px] font-bold text-emerald-600 mt-0.5 uppercase tracking-wide">
                   {settings?.schoolName || 'SMK PGRI 2 PONOROGO'}

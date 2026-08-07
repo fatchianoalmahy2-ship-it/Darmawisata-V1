@@ -43,6 +43,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activeMainTab, setActiveMainTab] = useState<'PARAM_ALOKASI' | 'BATAS_ANGKET' | 'GELOMBANG_DESTINASI' | 'WA_TEMPLATE' | 'BRANDING_SURAT'>('PARAM_ALOKASI');
   const [activeTemplateTab, setActiveTemplateTab] = useState<'PANITIA' | 'WALI_KELAS'>('PANITIA');
 
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<string | null>(null);
+
+  const handleMigrate = async () => {
+    if (!confirm('Pindahkan seluruh data dari Firestore ke Cloud SQL sekarang?')) return;
+    setIsMigrating(true);
+    setMigrationResult(null);
+    try {
+      const res = await fetch('/api/migrate', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const msg = `Sukses! Migrasi ${data.stats.studentsCount} Siswa, ${data.stats.classesCount} Kelas, ${data.stats.rundownsCount} Jadwal Perjalanan.`;
+        setMigrationResult(msg);
+        alert(msg);
+        window.location.reload();
+      } else {
+        setMigrationResult(`Gagal migrasi: ${data.error}`);
+        alert(`Gagal: ${data.error}`);
+      }
+    } catch (err: any) {
+      setMigrationResult(`Error: ${err.message}`);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   if (settings !== prevSettings) {
     setPrevSettings(settings);
     setFormData({ ...settings });
@@ -735,9 +762,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </label>
               <input
                 type="text"
-                value={formData.appName || 'SIM DARMAWISATA'}
+                value={formData.appName || 'Darmawisata'}
                 onChange={(e) => setFormData({ ...formData, appName: e.target.value })}
-                placeholder="Contoh: SIM DARMAWISATA"
+                placeholder="Contoh: Darmawisata"
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
               />
               <span className="text-[10px] text-slate-500">Tampil pada header & brand navbar.</span>
@@ -1229,6 +1256,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </div>
           </div>
+        </div>
+
+        {/* Migration to Cloud SQL Section */}
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-purple-600 text-white rounded-xl shrink-0">
+              <RotateCcw className="w-5 h-5" />
+            </div>
+            <div>
+              <h5 className="font-black text-xs text-purple-900">Migrasi Data Firestore ke Cloud SQL (PostgreSQL)</h5>
+              <p className="text-[11px] text-purple-700 mt-0.5">
+                Salin seluruh data siswa, kelas, jadwal, dan pengaturan dari Firebase Firestore ke database Cloud SQL asia-southeast1.
+              </p>
+              {migrationResult && (
+                <p className="text-[11px] font-bold text-emerald-700 mt-1.5 p-1.5 bg-emerald-100 rounded-lg border border-emerald-200">
+                  {migrationResult}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleMigrate}
+            disabled={isMigrating}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer shadow-xs ${
+              isMigrating
+                ? 'bg-purple-300 text-purple-800 cursor-wait'
+                : 'bg-purple-700 hover:bg-purple-800 text-white shadow-purple-200'
+            }`}
+          >
+            <RotateCcw className={`w-4 h-4 ${isMigrating ? 'animate-spin' : ''}`} />
+            {isMigrating ? 'Memindahkan Data...' : 'Mulai Migrasi Data'}
+          </button>
         </div>
 
         {/* Danger Zone: Reset Data */}

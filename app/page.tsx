@@ -148,9 +148,9 @@ function HomePageContent() {
       return updated;
     });
     
-    // Batch deletion from local IndexedDB and enqueue sync tasks for each deletion
-    await Promise.all(studentIds.map((id) => dbService.deleteStudent(id)));
-    await Promise.all(studentIds.map((id) => dbService.enqueueTask('delete_student', id)));
+    // Batch deletion from local IndexedDB and Cloud SQL
+    await dbService.deleteBatchStudents(studentIds);
+    await dbService.enqueueTask('delete_batch_students', studentIds);
     
     showToast(`Berhasil menghapus ${studentIds.length} data siswa terpilih.`, 'info');
   };
@@ -372,7 +372,7 @@ function HomePageContent() {
       <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
         <h3 className="font-extrabold text-lg tracking-tight">
-          SMK PGRI 2 PONOROGO — SIM DARMAWISATA
+          SMK PGRI 2 PONOROGO — Darmawisata
         </h3>
         <p className="text-xs text-slate-400">Menghubungkan ke Database Terdesentralisasi...</p>
         {loadError && <p className="text-xs text-red-500">{loadError}</p>}

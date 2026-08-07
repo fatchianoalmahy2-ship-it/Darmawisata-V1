@@ -323,8 +323,140 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     };
   };
 
+  // Helper to parse flat Master Data Excel sheets (Backup format with columns: No, NIS, Nama Siswa, Kelas, etc.)
+  const parseFlatMasterDataWorkbook = (wb: XLSX.WorkBook): ParsedClassData[] => {
+    const allStudentsMap = new Map<string, Student[]>();
+
+    wb.SheetNames.forEach((sheetName) => {
+      const ws = wb.Sheets[sheetName];
+      const jsonRows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+      if (!jsonRows || jsonRows.length === 0) return;
+
+      // Check if this sheet has keys matching Master Data format
+      const sample = jsonRows[0];
+      const keys = Object.keys(sample).map((k) => k.trim());
+      const hasNamaCol = keys.some((k) => /^nama/i.test(k) || k.toLowerCase().includes('siswa'));
+      const hasNisCol = keys.some((k) => /^nis/i.test(k));
+      const hasKelasCol = keys.some((k) => /^kelas/i.test(k));
+
+      if ((hasNamaCol || hasNisCol) && hasKelasCol) {
+        jsonRows.forEach((row, idx) => {
+          const getVal = (...possibleKeys: string[]) => {
+            for (const pk of possibleKeys) {
+              const matchedKey = Object.keys(row).find(
+                (k) => k.trim().toLowerCase() === pk.toLowerCase()
+              );
+              if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
+                const str = String(row[matchedKey]).trim();
+                if (str) return str;
+              }
+            }
+            return '';
+          };
+
+          const name = getVal('Nama Siswa', 'Nama', 'Nama_Siswa', 'Student Name', 'Name');
+          const classNameRaw = getVal('Kelas', 'Class', 'Nama Kelas');
+          if (!name || !classNameRaw) return;
+
+          const className = normalizeClassName(classNameRaw);
+          const nis = getVal('NIS', 'NISN', 'Nis', 'No NIS') || `NIS-${className.replace(/\s+/g, '')}-${idx + 1}`;
+
+          const genderRaw = getVal('Jenis Kelamin', 'Gender', 'JK', 'L/P').toUpperCase();
+          const gender: GenderType = genderRaw.includes('P') || genderRaw.includes('FEMALE') ? 'PEREMPUAN' : 'LAKI-LAKI';
+
+          const destinationRaw = getVal('Tujuan', 'Destination').toUpperCase();
+          let destination: DestinationType | undefined = undefined;
+          if (destinationRaw.includes('BALI')) destination = 'BALI';
+          else if (destinationRaw.includes('YOGYA')) destination = 'YOGYAKARTA';
+
+          const waveRaw = getVal('Gelombang', 'Wave').toUpperCase();
+          let wave: WaveType | undefined = undefined;
+          if (waveRaw.includes('BALI_GEL_1') || waveRaw.includes('GEL 1 BALI') || waveRaw.includes('BALI 1')) wave = 'BALI_GEL_1';
+          else if (waveRaw.includes('BALI_GEL_2') || waveRaw.includes('GEL 2 BALI') || waveRaw.includes('BALI 2')) wave = 'BALI_GEL_2';
+          else if (waveRaw.includes('YOGYA_GEL_1') || waveRaw.includes('GEL 1 YOGYA') || waveRaw.includes('YOGYA 1')) wave = 'YOGYA_GEL_1';
+
+          const sizeRaw = getVal('Ukuran Kaos', 'Ukuran', 'Kaos', 'T-Shirt', 'Size').toUpperCase();
+          const validSizes: TShirtSize[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+          const tShirtSize = validSizes.includes(sizeRaw as TShirtSize) ? (sizeRaw as TShirtSize) : undefined;
+
+          const parentName = getVal('Orang Tua', 'Nama Orang Tua', 'Nama Ortu', 'Parent Name') || undefined;
+          const parentPhone = getVal('WA Ortu', 'No WA Ortu', 'Hp Ortu', 'Parent Phone') || undefined;
+          const studentPhone = getVal('WA Siswa', 'No WA Siswa', 'Hp Siswa', 'Student Phone') || undefined;
+          const medicalHistory = getVal('Riwayat Medis', 'Riwayat Penyakit', 'Penyakit') || undefined;
+
+          const waiverRaw = getVal('Beasiswa/Jalur', 'Beasiswa', 'Jalur', 'Waiver').toUpperCase();
+          let waiverType: WaiverType = 'NONE';
+          if (waiverRaw.includes('25')) waiverType = '25%';
+          else if (waiverRaw.includes('50')) waiverType = '50%';
+
+          const busStr = getVal('Bus #', 'Bus', 'No Bus');
+          const busNumber = busStr && !isNaN(parseInt(busStr)) ? parseInt(busStr) : undefined;
+
+          const roomStr = getVal('Kamar #', 'Kamar', 'No Kamar');
+          const roomNumber = roomStr && !isNaN(parseInt(roomStr)) ? parseInt(roomStr) : undefined;
+
+          const statusAngketRaw = getVal('Status Angket', 'Status', 'Is Registered').toLowerCase();
+          const isRegistered =
+            statusAngketRaw.includes('sudah') ||
+            statusAngketRaw.includes('terisi') ||
+            statusAngketRaw === 'true' ||
+            Boolean(destination);
+
+          const studentObj: Student = {
+            id: `imp-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+            nis,
+            name,
+            className,
+            gender,
+            destination,
+            wave,
+            tShirtSize,
+            parentName,
+            parentPhone,
+            studentPhone,
+            medicalHistory,
+            waiverType,
+            busNumber,
+            roomNumber,
+            isRegistered,
+            updatedAt: new Date().toISOString(),
+          };
+
+          if (!allStudentsMap.has(className)) {
+            allStudentsMap.set(className, []);
+          }
+          allStudentsMap.get(className)!.push(studentObj);
+        });
+      }
+    });
+
+    const results: ParsedClassData[] = [];
+    allStudentsMap.forEach((students, className) => {
+      results.push({
+        className,
+        homeroomTeacher: `Wali Kelas ${className}`,
+        students,
+      });
+    });
+
+    return results;
+  };
+
   // Process XLSX Workbook Object
   const processXlsxWorkbook = (wb: XLSX.WorkBook) => {
+    // 1. Try parsing as Flat Master Data Table (backup format)
+    const flatResults = parseFlatMasterDataWorkbook(wb);
+    if (flatResults.length > 0) {
+      setParsedClassesData(flatResults);
+      setErrorMsg('');
+      const totalSiswa = flatResults.reduce((acc, c) => acc + c.students.length, 0);
+      setSuccessMsg(
+        `Berhasil membaca format Backup Excel Master Data (${flatResults.length} Kelas, Total ${totalSiswa} Siswa lengkap dengan Bus, Kamar, WA, & Status Angket)!`
+      );
+      return;
+    }
+
+    // 2. Fallback to multi-sheet class templates (Sheet = Class Name, B7:B45 = Student Names, Cell L2 = Wali Kelas)
     const results: ParsedClassData[] = [];
 
     wb.SheetNames.forEach((sheetName) => {
@@ -853,10 +985,10 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
           >
             {isProcessing ? (
-              <span>Mengimpor ke Firebase...</span>
+              <span>Mengimpor ke Cloud SQL...</span>
             ) : (
               <>
-                <Upload className="w-4 h-4" /> Import {totalSiswaParsed || parsedRows.length} Siswa ke Firebase
+                <Upload className="w-4 h-4" /> Import {totalSiswaParsed || parsedRows.length} Siswa ke Cloud SQL
               </>
             )}
           </button>

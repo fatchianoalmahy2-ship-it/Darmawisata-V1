@@ -14,6 +14,11 @@ const eslintConfig = [
     ignores: [".next/*", ".next/**"],
   },
   ...compat.extends("next/core-web-vitals"),
+  {
+    rules: {
+      "@next/next/no-img-element": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

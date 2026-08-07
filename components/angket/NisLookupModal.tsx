@@ -25,6 +25,9 @@ export const NisLookupModal: React.FC<NisLookupModalProps> = ({
   const classesList = Array.from(new Set(students.map((s) => normalizeClassName(s.className))))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
+  const [serverResults, setServerResults] = useState<Student[]>([]);
+  const [isSearchingServer, setIsSearchingServer] = useState(false);
+
   const normalizeNis = (val: string) => val.replace(/[^0-9a-zA-Z]/g, '').toLowerCase();
 
   const filteredStudents = students.filter((s) => {
@@ -40,6 +43,41 @@ export const NisLookupModal: React.FC<NisLookupModalProps> = ({
 
     return matchesSearch && matchesClass;
   });
+
+  // Debounced server search if local search returns empty or if local student list is empty
+  React.useEffect(() => {
+    const term = searchTerm.trim();
+    if (!term || term.length < 2) {
+      setServerResults([]);
+      return;
+    }
+
+    if (filteredStudents.length > 0) {
+      setServerResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingServer(true);
+      try {
+        const res = await fetch(`/api/student/lookup?q=${encodeURIComponent(term)}&class=${encodeURIComponent(selectedClassFilter)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.students)) {
+            setServerResults(data.students);
+          }
+        }
+      } catch (e) {
+        console.warn('Server lookup error in modal:', e);
+      } finally {
+        setIsSearchingServer(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, selectedClassFilter, filteredStudents.length]);
+
+  const displayList = filteredStudents.length > 0 ? filteredStudents : serverResults;
 
   return (
     <Modal
@@ -79,14 +117,22 @@ export const NisLookupModal: React.FC<NisLookupModalProps> = ({
 
         {/* Student List Grid */}
         <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
-          {filteredStudents.length === 0 ? (
+          {isSearchingServer ? (
+            <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <p className="text-sm font-medium text-emerald-600 animate-pulse">
+                Mencari data siswa dari server...
+              </p>
+            </div>
+          ) : displayList.length === 0 ? (
             <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
               <p className="text-sm font-medium text-slate-500">
-                Tidak ada siswa yang cocok dengan pencarian &quot;{searchTerm}&quot;
+                {searchTerm
+                  ? `Tidak ada siswa yang cocok dengan pencarian "${searchTerm}"`
+                  : 'Ketik NIS atau Nama untuk melihat daftar siswa'}
               </p>
             </div>
           ) : (
-            filteredStudents.map((student) => (
+            displayList.map((student) => (
               <button
                 key={student.id}
                 onClick={() => {

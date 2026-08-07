@@ -85,7 +85,7 @@ export const PublicSidebarDrawer: React.FC<PublicSidebarDrawerProps> = ({
             )}
             <div>
               <h3 className="font-extrabold text-sm text-white tracking-tight uppercase">
-                {settings?.appName || 'SIM Darmawisata'}
+                {settings?.appName || 'Darmawisata'}
               </h3>
               <p className="text-[11px] text-emerald-400 font-semibold uppercase">
                 {settings?.schoolName || 'SMK PGRI 2 Ponorogo'}
@@ -261,7 +261,7 @@ export const PublicSidebarDrawer: React.FC<PublicSidebarDrawerProps> = ({
 
         {/* Drawer Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 text-center text-[10px] text-slate-500">
-          <p className="font-semibold text-slate-700">SIM Darmawisata 2025/2026</p>
+          <p className="font-semibold text-slate-700">Darmawisata 2025/2026</p>
           <p>Sistem Informasi Terpadu Berbasis Cloud</p>
         </div>
       </aside>

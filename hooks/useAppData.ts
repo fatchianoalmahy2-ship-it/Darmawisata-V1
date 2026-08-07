@@ -21,6 +21,7 @@ export const LS_CACHE_KEYS = {
   CLASSES: 'sim_darmawisata_cache_classes',
   SETTINGS: 'sim_darmawisata_cache_settings',
   RUNDOWNS: 'sim_darmawisata_cache_rundowns',
+  LAST_SYNC: 'sim_darmawisata_cache_last_sync',
 };
 
 const areStudentsEqual = (a: Student[], b: Student[]) => {
@@ -195,6 +196,15 @@ export function useAppData() {
           setBuses(finalBuses);
           setRooms(finalRooms);
           setIsLoaded(true);
+
+          // Smart TTL check (Solusi 1 & 4): If synced within last 15 minutes, skip expensive collection reads to save quota
+          const lastSync = localStorage.getItem(LS_CACHE_KEYS.LAST_SYNC);
+          const now = Date.now();
+          if (lastSync && now - Number(lastSync) < 15 * 60 * 1000) {
+            console.log('Data served from fresh IndexedDB/LocalStorage cache (< 15 mins). Skipping remote fetch to preserve quota.');
+            setIsSyncing(false);
+            return;
+          }
         }
 
         // Fetch fresh authoritative data from Firebase
@@ -261,6 +271,7 @@ export function useAppData() {
           localStorage.setItem(LS_CACHE_KEYS.CLASSES, JSON.stringify(initialClss));
           localStorage.setItem(LS_CACHE_KEYS.SETTINGS, JSON.stringify(initialStgs));
           localStorage.setItem(LS_CACHE_KEYS.RUNDOWNS, JSON.stringify(initialRdns));
+          localStorage.setItem(LS_CACHE_KEYS.LAST_SYNC, String(Date.now()));
         } catch (e) {
           console.warn('LocalStorage caching failed:', e);
         }
@@ -308,6 +319,29 @@ export function useAppData() {
     }
   }, [isLoaded, students, classes, settings, rundowns]);
 
+  const forceRemoteSync = useCallback(async () => {
+    localStorage.removeItem(LS_CACHE_KEYS.LAST_SYNC);
+    setIsSyncing(true);
+    try {
+      const [initialStds, initialClss, initialStgs, initialRdns] = await Promise.all([
+        getInitialStudents(),
+        getInitialClasses(),
+        getInitialSettings(),
+        getInitialRundowns(),
+      ]);
+      setStudents(initialStds);
+      setClasses(initialClss);
+      setSettings(initialStgs);
+      setRundowns(initialRdns);
+      localStorage.setItem(LS_CACHE_KEYS.LAST_SYNC, String(Date.now()));
+      await dbService.triggerSync();
+    } catch (e) {
+      console.error('Force remote sync failed:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
   return {
     currentUser,
     setCurrentUser,
@@ -329,5 +363,6 @@ export function useAppData() {
     isAngketClosed,
     checkIsAngketClosed,
     autoAllocateAllWhenClosed,
+    forceRemoteSync,
   };
 }

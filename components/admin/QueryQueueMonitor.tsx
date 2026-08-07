@@ -21,6 +21,38 @@ import {
 export const QueryQueueMonitor: React.FC = () => {
   const [queue, setQueue] = useState<SyncTask[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
+
+  const handleRunMigration = async () => {
+    if (!window.confirm('Pindahkan data lama dari Firebase Firestore ke Cloud SQL sekarang?')) return;
+    setIsMigrating(true);
+    setMigrationStatus(null);
+    try {
+      addLog('info', 'Memulai migrasi data dari Firestore ke Cloud SQL...');
+      const res = await fetch('/api/migrate', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const msg = `Migrasi Berhasil! Siswa: ${data.stats.studentsCount}, Kelas: ${data.stats.classesCount}, Jadwal: ${data.stats.rundownsCount}`;
+        setMigrationStatus(msg);
+        addLog('success', msg);
+        alert(msg);
+        window.location.reload();
+      } else {
+        const msg = `Gagal migrasi: ${data.error}`;
+        setMigrationStatus(msg);
+        addLog('error', msg);
+        alert(msg);
+      }
+    } catch (e: any) {
+      const msg = `Error migrasi: ${e?.message || e}`;
+      setMigrationStatus(msg);
+      addLog('error', msg);
+      alert(msg);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
   
   const [simulatedOffline, setSimulatedOffline] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -228,6 +260,40 @@ export const QueryQueueMonitor: React.FC = () => {
 
   return (
     <div className="space-y-6" id="query-queue-monitor-root">
+      {/* Cloud SQL Migration Banner */}
+      <div className="p-5 bg-gradient-to-r from-purple-900 to-indigo-900 text-white rounded-2xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-purple-700">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 bg-purple-500/30 text-purple-200 border border-purple-400/40 rounded-md text-[10px] font-black uppercase tracking-wider">
+              Database Cloud SQL Active
+            </span>
+            <span className="text-xs text-purple-300 font-medium">PostgreSQL Serverless</span>
+          </div>
+          <h3 className="text-base font-black text-white">Migrasi Data dari Firebase Firestore ke Cloud SQL</h3>
+          <p className="text-xs text-purple-200/90 max-w-2xl leading-relaxed">
+            Klik tombol di samping untuk memindahkan seluruh record siswa, rombel kelas, jadwal perjalanan, dan konfigurasi master dari Firestore ke database Cloud SQL.
+          </p>
+          {migrationStatus && (
+            <p className="text-xs font-bold text-emerald-300 mt-2 p-2 bg-emerald-950/60 rounded-xl border border-emerald-500/50">
+              ✅ {migrationStatus}
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={handleRunMigration}
+          disabled={isMigrating}
+          className={`px-5 py-3 rounded-xl text-xs font-extrabold shadow-lg transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+            isMigrating
+              ? 'bg-purple-800 text-purple-300 cursor-wait border border-purple-600'
+              : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-900/50 hover:scale-105'
+          }`}
+        >
+          <RefreshCw className={`w-4 h-4 ${isMigrating ? 'animate-spin' : ''}`} />
+          {isMigrating ? 'Sedang Memindahkan Data...' : 'Pindahkan Data Sekarang'}
+        </button>
+      </div>
+
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Connection Status Card */}

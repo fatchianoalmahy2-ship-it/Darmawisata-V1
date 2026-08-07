@@ -1,5 +1,5 @@
 {
-  "name": "Sistem Manajemen Darmawisata SMK PGRI 2 Ponorogo",
+  "name": "Darmawisata",
   "description": "Aplikasi terpadu manajemen darmawisata SMK PGRI 2 Ponorogo: angket peminatan NIS, denah bus, pembagian kamar otomatis, surat izin & jalur tidak mampu, rekap harian WA/PDF, serta portal Wali Kelas & Panitia.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
