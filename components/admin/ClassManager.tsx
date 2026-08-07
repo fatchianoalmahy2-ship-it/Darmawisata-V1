@@ -35,6 +35,7 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<SchoolClass | null>(null);
+  const [deletingClass, setDeletingClass] = useState<SchoolClass | null>(null);
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -203,11 +204,7 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Hapus kelas ${cls.name}? Menghapus kelas tidak menghapus siswanya.`)) {
-                          onDeleteClass(cls.id);
-                        }
-                      }}
+                      onClick={() => setDeletingClass(cls)}
                       className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                       title="Hapus Kelas"
                     >
@@ -304,6 +301,48 @@ export const ClassManager: React.FC<ClassManagerProps> = ({
           </div>
         </form>
       </Modal>
+
+      {/* Custom Non-blocking Delete Class Confirmation Modal */}
+      {deletingClass && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-3 bg-rose-100 rounded-2xl">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-slate-800">Hapus Rombel Kelas</h3>
+                <p className="text-xs text-slate-500 font-medium">Konfirmasi Penghapusan Kelas</p>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-sans">
+              Apakah Anda yakin ingin menghapus Rombel Kelas <strong className="text-slate-900 font-black">{deletingClass.name}</strong>? Menghapus kelas tidak akan menghapus data siswa yang terdaftar.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeletingClass(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteClass(deletingClass.id);
+                  setDeletingClass(null);
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Ya, Hapus Kelas</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

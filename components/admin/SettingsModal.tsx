@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { SchoolLogo } from '@/components/ui/SchoolLogo';
 import { AppSettings } from '@/types';
 import schoolMetadata from '@/config/schoolMetadata.json';
+import { SupabaseSqlModal } from '@/components/admin/SupabaseSqlModal';
 import {
   Settings,
   Save,
@@ -21,6 +22,9 @@ import {
   Upload,
   Image as ImageIcon,
   Trash2,
+  Database,
+  Terminal,
+  FileCode,
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -42,6 +46,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [formData, setFormData] = useState<AppSettings>({ ...settings });
   const [activeMainTab, setActiveMainTab] = useState<'PARAM_ALOKASI' | 'BATAS_ANGKET' | 'GELOMBANG_DESTINASI' | 'WA_TEMPLATE' | 'BRANDING_SURAT'>('PARAM_ALOKASI');
   const [activeTemplateTab, setActiveTemplateTab] = useState<'PANITIA' | 'WALI_KELAS'>('PANITIA');
+  const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
 
   if (settings !== prevSettings) {
     setPrevSettings(settings);
@@ -1231,14 +1236,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
 
+        {/* Supabase SQL Schema Generator Section */}
+        <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 shrink-0">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h5 className="font-bold text-xs text-emerald-400 flex items-center gap-1.5">
+                Script SQL Schema Supabase
+                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  Master Schema
+                </span>
+              </h5>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Generate skema DDL & RLS Supabase untuk siswa, kelas, setting & rundown dengan index cepat.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSqlModalOpen(true)}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 shadow-xs shrink-0 cursor-pointer"
+          >
+            <FileCode className="w-4 h-4" />
+            <span>Buat SQL Supabase</span>
+          </button>
+        </div>
+
         {/* Danger Zone: Reset Data */}
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
             <div>
-              <h5 className="font-bold text-xs text-rose-900">Reset Database ke Sample Data</h5>
+              <h5 className="font-bold text-xs text-rose-900">Kosongkan/Reset Data Supabase</h5>
               <p className="text-[11px] text-rose-700">
-                Kembalikan data ke awal (1000 data sampel siswa SMK PGRI 2 Ponorogo).
+                Mengosongkan cache lokal dan menyegarkan koneksi langsung dari database Supabase.
               </p>
             </div>
           </div>
@@ -1246,7 +1280,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (confirm('Yakin ingin mereset seluruh data siswa ke data awal?')) {
+              if (confirm('Yakin ingin mengosongkan cache dan menyegarkan ulang dari Supabase?')) {
                 onResetData();
                 onClose();
               }
@@ -1276,6 +1310,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
       </form>
+
+      {/* Supabase SQL Generator Modal */}
+      <SupabaseSqlModal
+        isOpen={isSqlModalOpen}
+        onClose={() => setIsSqlModalOpen(false)}
+      />
     </Modal>
   );
 };

@@ -25,7 +25,7 @@ import {
   getInitialSettings,
   getInitialRundowns,
   resetRundownsToDefault,
-} from '@/services/firebaseService';
+} from '@/services/supabaseService';
 import { RoomAllocatorEngine } from '@/services/roomAllocator';
 import { SeatAllocatorEngine } from '@/services/seatAllocator';
 import { normalizeClassName } from '@/lib/utils';
@@ -142,15 +142,16 @@ function HomePageContent() {
   };
 
   const handleDeleteMultipleStudents = async (studentIds: string[]) => {
+    if (!studentIds || studentIds.length === 0) return;
     setStudents((prev) => {
       const updated = prev.filter((s) => !studentIds.includes(s.id));
       try { localStorage.setItem(LS_CACHE_KEYS.STUDENTS, JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
     
-    // Batch deletion from local IndexedDB and enqueue sync tasks for each deletion
-    await Promise.all(studentIds.map((id) => dbService.deleteStudent(id)));
-    await Promise.all(studentIds.map((id) => dbService.enqueueTask('delete_student', id)));
+    // Batch deletion from local IndexedDB and enqueue sync task for bulk deletion
+    await dbService.deleteMultipleStudents(studentIds);
+    await dbService.enqueueTask('delete_students', studentIds);
     
     showToast(`Berhasil menghapus ${studentIds.length} data siswa terpilih.`, 'info');
   };

@@ -16,6 +16,7 @@ import {
   Activity,
   List,
   Terminal,
+  Zap,
 } from 'lucide-react';
 
 export const QueryQueueMonitor: React.FC = () => {
@@ -112,7 +113,7 @@ export const QueryQueueMonitor: React.FC = () => {
     }
 
     setIsSyncing(true);
-    addLog('info', 'Memulai sinkronisasi antrian query ke Firestore...');
+    addLog('info', 'Memulai sinkronisasi antrian query ke Supabase...');
 
     const startQueue = await dbService.getSyncQueue();
     if (startQueue.length === 0) {
@@ -186,6 +187,62 @@ export const QueryQueueMonitor: React.FC = () => {
     }, 500);
   };
 
+  const handleSimulateConcurrentAngket = async (count: number) => {
+    const startTime = performance.now();
+    addLog('info', `🚀 Memulai SIMULASI BENCHMARK: ${count} siswa mengirim data angket secara SERENTAK (Concurrent)...`);
+
+    const destinations = ['YOGYAKARTA', 'BANDUNG', 'BALI', 'JAKARTA'];
+    const waves = [1, 2];
+    const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+
+    const mockStudents = Array.from({ length: count }, (_, i) => {
+      const timestamp = Date.now();
+      const randomNis = Math.floor(100000 + Math.random() * 900000).toString();
+      return {
+        id: `sim_${timestamp}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+        nis: randomNis,
+        name: `Siswa Serentak #${i + 1}`,
+        className: `X MIPA ${(i % 5) + 1}`,
+        gender: i % 2 === 0 ? 'LAKI-LAKI' : 'PEREMPUAN',
+        isRegistered: true,
+        destination: destinations[i % destinations.length],
+        wave: waves[i % waves.length],
+        tShirtSize: sizes[i % sizes.length],
+        tShirtDesign: 'Desain A',
+        parentName: `Orang Tua Siswa #${i + 1}`,
+        parentPhone: `081234567${(100 + i).toString().slice(-3)}`,
+        studentPhone: `089876543${(100 + i).toString().slice(-3)}`,
+        busNumber: (i % 4) + 1,
+        seatNumber: (i % 40) + 1,
+        roomNumber: (i % 20) + 101,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    try {
+      // Execute all submissions concurrently using Promise.all
+      const submissionPromises = mockStudents.map(async (student) => {
+        // Save to local IndexedDB instantly
+        await dbService.putSingleStudent(student);
+        // Queue task for background/realtime database sync
+        await dbService.enqueueTask('save_student', student);
+      });
+
+      await Promise.all(submissionPromises);
+      const endTime = performance.now();
+      const durationMs = Math.round(endTime - startTime);
+
+      addLog(
+        'success',
+        `✅ BANJIR CONCURRENCY SELESAI! ${count} angket diproses dalam ${durationMs} ms (Rata-rata: ${(durationMs / count).toFixed(1)} ms/siswa). Mode Online: ${!simulatedOffline}`
+      );
+
+      await fetchQueue();
+    } catch (err: any) {
+      addLog('error', `❌ Gagal dalam simulasi concurrency: ${err?.message || err}`);
+    }
+  };
+
   const handleClearQueue = async () => {
     if (!window.confirm('Apakah Anda yakin ingin mengosongkan seluruh antrian query offline tanpa sinkronisasi?')) {
       return;
@@ -238,7 +295,7 @@ export const QueryQueueMonitor: React.FC = () => {
           <div>
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Status Koneksi</p>
             <p className="text-lg font-black text-slate-800">
-              {simulatedOffline ? 'Offline (Simulasi)' : 'Online (Firestore)'}
+              {simulatedOffline ? 'Offline (Simulasi)' : 'Online (Supabase)'}
             </p>
             <button
               onClick={toggleOfflineMode}
@@ -331,7 +388,7 @@ export const QueryQueueMonitor: React.FC = () => {
                 <Database className="w-12 h-12 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm font-bold text-slate-700">Tidak ada antrian query tertunda</p>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  Semua transaksi langsung disimpan ke Firestore secara real-time karena koneksi dalam keadaan online. Aktifkan simulasi offline untuk menumpuk antrian.
+                  Semua transaksi langsung disimpan ke Supabase secara real-time karena koneksi dalam keadaan online. Aktifkan simulasi offline untuk menumpuk antrian.
                 </p>
               </div>
             ) : (
@@ -381,27 +438,45 @@ export const QueryQueueMonitor: React.FC = () => {
           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <Activity className="w-5 h-5 text-indigo-500" />
-              <h3 className="font-black text-slate-800 text-base font-sans">Simulasi Pengujian Query</h3>
+              <h3 className="font-black text-slate-800 text-base font-sans">Simulasi Pengujian Query & Input Serentak</h3>
             </div>
             <p className="text-xs text-slate-500">
-              Gunakan kontrol di bawah ini untuk mensimulasikan query CRUD ke database. Saat mode offline aktif, query akan masuk ke IndexedDB antrian query lokal. Matikan mode offline untuk melihat data tersebut diproses secara terurut ke Firebase.
+              Gunakan kontrol di bawah ini untuk mensimulasikan query CRUD ke database atau pengiriman angket siswa secara serentak (concurrent load test).
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2.5">
               <button
                 onClick={() => handleAddTestTask('save_student')}
-                className="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Tambah Siswa Baru (Query)
+                <Plus className="w-3.5 h-3.5" /> 1 Siswa Baru (Single Query)
+              </button>
+              <button
+                onClick={() => handleSimulateConcurrentAngket(10)}
+                className="flex items-center gap-1.5 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 px-3.5 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-600" /> Simulasi 10 Siswa Serentak
+              </button>
+              <button
+                onClick={() => handleSimulateConcurrentAngket(50)}
+                className="flex items-center gap-1.5 bg-orange-50 text-orange-800 hover:bg-orange-100 border border-orange-200 px-3.5 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 text-orange-600" /> Simulasi 50 Siswa Serentak
+              </button>
+              <button
+                onClick={() => handleSimulateConcurrentAngket(100)}
+                className="flex items-center gap-1.5 bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 px-3.5 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 text-purple-600" /> Simulasi 100 Siswa Serentak
               </button>
               <button
                 onClick={() => handleAddTestTask('save_settings')}
-                className="flex items-center gap-1.5 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 px-4 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
               >
-                <Settings className="w-3.5 h-3.5" /> Simpan Pengaturan Aplikasi (Query)
+                <Settings className="w-3.5 h-3.5" /> Simpan Pengaturan (Query)
               </button>
               <button
                 onClick={() => handleAddTestTask('delete_student')}
-                className="flex items-center gap-1.5 bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200 px-4 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200 px-3.5 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Hapus Siswa (Query)
               </button>

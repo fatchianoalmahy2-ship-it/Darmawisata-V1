@@ -68,6 +68,11 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [clearInputText, setClearInputText] = useState('');
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'single' | 'bulk';
+    student?: Student;
+    ids?: string[];
+  } | null>(null);
 
   // Multi-select & Column Visibility States
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -472,16 +477,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
 
             <button
               type="button"
-              onClick={() => {
-                if (confirm(`Apakah Anda yakin ingin menghapus ${selectedStudentIds.length} data siswa terpilih? Aksi ini akan menghapus pembagian bus dan kamar mereka.`)) {
-                  if (onDeleteMultipleStudents) {
-                    onDeleteMultipleStudents(selectedStudentIds);
-                  } else {
-                    selectedStudentIds.forEach(id => onDeleteStudent(id));
-                  }
-                  setSelectedStudentIds([]);
-                }
-              }}
+              onClick={() => setDeleteTarget({ type: 'bulk', ids: selectedStudentIds })}
               className="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -647,11 +643,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
                           </button>
 
                           <button
-                            onClick={() => {
-                              if (confirm(`Hapus data siswa ${st.name}?`)) {
-                                onDeleteStudent(st.id);
-                              }
-                            }}
+                            onClick={() => setDeleteTarget({ type: 'single', student: st })}
                             className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             title="Hapus Siswa"
                           >
@@ -1010,6 +1002,61 @@ export const StudentManager: React.FC<StudentManagerProps> = ({
           </div>
         </div>
       </Modal>
+
+      {/* Custom Non-blocking Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-3 bg-rose-100 rounded-2xl">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-slate-800">
+                  {deleteTarget.type === 'single' ? 'Hapus Data Siswa' : 'Hapus Massal Siswa'}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">Konfirmasi Tindakan Hapus</p>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-sans">
+              {deleteTarget.type === 'single'
+                ? `Apakah Anda yakin ingin menghapus data siswa ${deleteTarget.student?.name} (${deleteTarget.student?.nis || 'N/A'})? Aksi ini akan menghapus alokasi bus dan kamar siswa tersebut.`
+                : `Apakah Anda yakin ingin menghapus ${deleteTarget.ids?.length} data siswa terpilih sekaligus? Aksi ini akan menghapus seluruh data serta pembagian bus/kamar mereka.`}
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleteTarget.type === 'single' && deleteTarget.student) {
+                    onDeleteStudent(deleteTarget.student.id);
+                  } else if (deleteTarget.type === 'bulk' && deleteTarget.ids) {
+                    if (onDeleteMultipleStudents) {
+                      onDeleteMultipleStudents(deleteTarget.ids);
+                    } else {
+                      deleteTarget.ids.forEach((id) => onDeleteStudent(id));
+                    }
+                    setSelectedStudentIds([]);
+                  }
+                  setDeleteTarget(null);
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Ya, Hapus Data</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

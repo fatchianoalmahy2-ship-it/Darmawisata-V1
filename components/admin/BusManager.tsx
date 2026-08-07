@@ -84,13 +84,11 @@ export const BusManager: React.FC<BusManagerProps> = ({
   };
 
   const handleRemoveStudent = (student: Student) => {
-    if (confirm(`Hapus ${student.name} dari Bus ${student.busNumber}?`)) {
-      onUpdateStudent({
-        ...student,
-        busNumber: undefined,
-        seatNumber: undefined,
-      });
-    }
+    onUpdateStudent({
+      ...student,
+      busNumber: undefined,
+      seatNumber: undefined,
+    });
   };
 
   return (

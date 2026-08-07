@@ -1,5 +1,6 @@
 import { AuthUser, UserRole, AdminCredentials, SchoolClass } from '@/types';
-import { getAdminCredentialsFirestore, saveAdminCredentialsFirestore, getDb, getFirebaseSDK } from './firebaseService';
+import { getAdminCredentialsSupabase, saveAdminCredentialsSupabase } from './supabaseService';
+import { supabase } from '@/lib/supabaseClient';
 
 const AUTH_SESSION_KEY = 'smk_pgri_2_auth_session';
 const ADMIN_CREDS_KEY = 'smk_pgri_2_admin_creds';
@@ -11,11 +12,11 @@ export const DEFAULT_PUBLIC_USER: AuthUser = {
 
 export class AuthService {
   /**
-   * Get custom admin credentials from Firestore or fallback to LocalStorage/Default
+   * Get custom admin credentials from Supabase or fallback to LocalStorage/Default
    */
   static async getAdminCredentials(): Promise<AdminCredentials> {
     try {
-      const creds = await getAdminCredentialsFirestore();
+      const creds = await getAdminCredentialsSupabase();
       if (creds) {
         if (typeof window !== 'undefined') {
           try {
@@ -27,7 +28,7 @@ export class AuthService {
         return creds;
       }
     } catch (e) {
-      console.warn('Failed to load admin creds from Firestore:', e);
+      console.warn('Failed to load admin creds from Supabase:', e);
     }
 
     if (typeof window !== 'undefined') {
@@ -48,7 +49,7 @@ export class AuthService {
   }
 
   /**
-   * Update admin credentials (saves to both Firestore and LocalStorage)
+   * Update admin credentials (saves to both Supabase and LocalStorage)
    */
   static async updateAdminCredentials(newCreds: AdminCredentials): Promise<void> {
     if (typeof window !== 'undefined') {
@@ -59,9 +60,9 @@ export class AuthService {
       }
     }
     try {
-      await saveAdminCredentialsFirestore(newCreds);
+      await saveAdminCredentialsSupabase(newCreds);
     } catch (e) {
-      console.error('Failed to save admin creds to Firestore:', e);
+      console.error('Failed to save admin creds to Supabase:', e);
     }
   }
 
@@ -139,19 +140,17 @@ export class AuthService {
     let actualCustomPassword = customPassword;
 
     try {
-      const db = await getDb();
-      if (db) {
-        const sdk = await getFirebaseSDK();
-        const classesRef = sdk.collection(db, 'classes');
-        const q = sdk.query(classesRef, sdk.where('name', '==', className));
-        const snap = await sdk.getDocs(q);
-        if (!snap.empty) {
-          const classData = snap.docs[0].data() as SchoolClass;
-          actualCustomPassword = classData.teacherPassword;
-        }
+      const { data, error } = await supabase
+        .from('classes')
+        .select('teacherPassword')
+        .eq('name', className)
+        .maybeSingle();
+
+      if (data && data.teacherPassword && !error) {
+        actualCustomPassword = data.teacherPassword;
       }
     } catch (err) {
-      console.warn('Failed to fetch fresh class credentials from Firestore:', err);
+      console.warn('Failed to fetch fresh class credentials from Supabase:', err);
     }
 
     const isValid = actualCustomPassword

@@ -9,12 +9,11 @@ import {
   getInitialClasses,
   getInitialSettings,
   getInitialRundowns,
-} from '@/services/firebaseService';
+} from '@/services/supabaseService';
 import { RoomAllocatorEngine } from '@/services/roomAllocator';
 import { SeatAllocatorEngine } from '@/services/seatAllocator';
 import { normalizeClassName, sortClassesAlphabetically } from '@/lib/utils';
 import schoolMetadata from '@/config/schoolMetadata.json';
-import schoolClassesData from '@/config/schoolClasses.json';
 
 export const LS_CACHE_KEYS = {
   STUDENTS: 'sim_darmawisata_cache_students',
@@ -46,16 +45,9 @@ const areRundownsEqual = (a: RundownItem[], b: RundownItem[]) => {
 export function useAppData() {
   const [currentUser, setCurrentUser] = useState<AuthUser>(DEFAULT_PUBLIC_USER);
   const [students, setStudents] = useState<Student[]>([]);
-  const [classes, setClasses] = useState<SchoolClass[]>(() => {
-    return sortClassesAlphabetically(schoolClassesData as SchoolClass[]);
-  });
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [settings, setSettings] = useState<AppSettings>(schoolMetadata.defaultSettings as AppSettings);
-  const [rundowns, setRundowns] = useState<RundownItem[]>(() => {
-    return [
-      ...(schoolMetadata.rundowns.BALI as RundownItem[]).map((r, idx) => ({ ...r, id: `bali_${idx}` })),
-      ...(schoolMetadata.rundowns.YOGYAKARTA as RundownItem[]).map((r, idx) => ({ ...r, id: `yogya_${idx}` })),
-    ].sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
-  });
+  const [rundowns, setRundowns] = useState<RundownItem[]>([]);
   const [buses, setBuses] = useState<Bus[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoaded, setIsLoaded] = useState<boolean>(true); // Load instantly!
@@ -207,18 +199,34 @@ export function useAppData() {
           }
         }
 
-        // Ensure pending background tasks are flushed to Firebase before fetching
+        // Ensure pending background tasks are flushed to Supabase before fetching
         if (!dbService.isSyncing) {
           await dbService.triggerSync();
         }
 
-        // Fetch fresh authoritative data from Firebase
-        const [initialStds, initialClss, initialStgs, initialRdns] = await Promise.all([
+        // Fetch fresh authoritative data from Supabase
+        let [initialStds, initialClss, initialStgs, initialRdns] = await Promise.all([
           shouldFetchStudents ? getInitialStudents() : Promise.resolve([]),
           getInitialClasses(),
           getInitialSettings(),
           getInitialRundowns(),
         ]);
+
+        // Smart Auto-Seeding (Only on first app setup when Supabase is brand new AND local cache exists):
+        const hasBeenSeeded = localStorage.getItem('app_has_been_seeded');
+        if (!hasBeenSeeded) {
+          if (cachedStudents.length > 0 && initialStds.length === 0) {
+            console.log('Initial setup: Auto-seeding cached local students to Supabase...');
+            initialStds = cachedStudents;
+            await dbService.enqueueTask('save_students', cachedStudents);
+          }
+          if (cachedClasses.length > 0 && initialClss.length === 0) {
+            console.log('Initial setup: Auto-seeding cached local classes to Supabase...');
+            initialClss = cachedClasses;
+            await dbService.enqueueTask('save_classes', cachedClasses);
+          }
+          localStorage.setItem('app_has_been_seeded', 'true');
+        }
 
         const isClosed = checkIsAngketClosed(initialStgs);
         const needsAllocation = initialStds.some(
@@ -304,8 +312,15 @@ export function useAppData() {
         dbService.triggerSync();
       };
       window.addEventListener('online', handleOnline);
+
+      // Periodic auto-flush queue every 15 seconds to guarantee background sync
+      const autoSyncInterval = setInterval(() => {
+        dbService.triggerSync();
+      }, 15000);
+
       return () => {
         window.removeEventListener('online', handleOnline);
+        clearInterval(autoSyncInterval);
       };
     }
   }, [autoAllocateAllWhenClosed, checkIsAngketClosed, currentUser.role]);

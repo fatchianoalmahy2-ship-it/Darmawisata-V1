@@ -4,7 +4,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Student } from '@/types';
 import { normalizeClassName } from '@/lib/utils';
 import { Search, UserCheck, CheckCircle2, Loader2 } from 'lucide-react';
-import { getStudentsByClass } from '@/services/firebaseService';
+import { getStudentsByClass } from '@/services/supabaseService';
 
 interface NisLookupModalProps {
   isOpen: boolean;
@@ -112,7 +112,7 @@ export const NisLookupModal: React.FC<NisLookupModalProps> = ({
           ) : filteredStudents.length === 0 ? (
             <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
               <p className="text-sm font-medium text-slate-500">
-                Tidak ada siswa yang cocok dengan pencarian "{searchTerm}"
+                Tidak ada siswa yang cocok dengan pencarian &quot;{searchTerm}&quot;
               </p>
             </div>
           ) : (

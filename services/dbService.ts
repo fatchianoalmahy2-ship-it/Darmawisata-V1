@@ -1,16 +1,17 @@
 import { Student, SchoolClass, AppSettings, RundownItem } from '@/types';
 import {
   saveStudents,
-  saveSingleStudent as saveSingleStudentFirebase,
-  deleteSingleStudent as deleteSingleStudentFirebase,
-  clearAllStudents as clearAllStudentsFirebase,
+  saveSingleStudent as saveSingleStudentSupabase,
+  deleteSingleStudent as deleteSingleStudentSupabase,
+  deleteMultipleStudents as deleteMultipleStudentsSupabase,
+  clearAllStudents as clearAllStudentsSupabase,
   saveClasses,
-  deleteSingleClass as deleteSingleClassFirebase,
-  clearAllClasses as clearAllClassesFirebase,
-  saveSettings as saveSettingsFirebase,
-  saveRundownItem as saveRundownItemFirebase,
-  deleteRundownItem as deleteRundownItemFirebase,
-} from './firebaseService';
+  deleteSingleClass as deleteSingleClassSupabase,
+  clearAllClasses as clearAllClassesSupabase,
+  saveSettings as saveSettingsSupabase,
+  saveRundownItem as saveRundownItemSupabase,
+  deleteRundownItem as deleteRundownItemSupabase,
+} from './supabaseService';
 
 const DB_NAME = 'SchoolDarmawisataDB';
 const DB_VERSION = 2;
@@ -148,6 +149,8 @@ export const dbService = {
   putStudents: (students: Student[]) => idbPutBatch('students', students),
   putSingleStudent: (student: Student) => idbPutOne('students', student),
   deleteStudent: (studentId: string) => idbDeleteOne('students', studentId),
+  deleteMultipleStudents: (studentIds: string[]) =>
+    Promise.all(studentIds.map((id) => idbDeleteOne('students', id))),
   clearStudents: () => idbClearStore('students'),
 
   getAllClasses: () => idbGetAll<SchoolClass>('classes'),
@@ -272,31 +275,34 @@ export const dbService = {
         await saveStudents(payload);
         break;
       case 'save_student':
-        await saveSingleStudentFirebase(payload);
+        await saveSingleStudentSupabase(payload);
         break;
       case 'delete_student':
-        await deleteSingleStudentFirebase(payload);
+        await deleteSingleStudentSupabase(payload);
+        break;
+      case 'delete_students':
+        await deleteMultipleStudentsSupabase(payload);
         break;
       case 'clear_students':
-        await clearAllStudentsFirebase();
+        await clearAllStudentsSupabase();
         break;
       case 'save_classes':
         await saveClasses(payload);
         break;
       case 'delete_class':
-        await deleteSingleClassFirebase(payload);
+        await deleteSingleClassSupabase(payload);
         break;
       case 'clear_classes':
-        await clearAllClassesFirebase();
+        await clearAllClassesSupabase();
         break;
       case 'save_settings':
-        await saveSettingsFirebase(payload);
+        await saveSettingsSupabase(payload);
         break;
       case 'save_rundown':
-        await saveRundownItemFirebase(payload);
+        await saveRundownItemSupabase(payload);
         break;
       case 'delete_rundown':
-        await deleteRundownItemFirebase(payload);
+        await deleteRundownItemSupabase(payload);
         break;
       default:
         console.warn('Unknown sync task action:', action);

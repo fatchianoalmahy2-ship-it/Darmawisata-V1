@@ -87,12 +87,10 @@ export const RoomManager: React.FC<RoomManagerProps> = ({
   };
 
   const handleRemoveStudent = (student: Student) => {
-    if (confirm(`Keluarkan ${student.name} dari Kamar ${student.roomNumber}?`)) {
-      onUpdateStudent({
-        ...student,
-        roomNumber: undefined,
-      });
-    }
+    onUpdateStudent({
+      ...student,
+      roomNumber: undefined,
+    });
   };
 
   return (

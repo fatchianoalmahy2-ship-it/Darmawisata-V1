@@ -206,62 +206,69 @@ export const AngketForm: React.FC<AngketFormProps> = ({
 
   const [isSearching, setIsSearching] = useState(false);
 
-  // Strict and Accurate NIS Search Trigger
+  // Strict and Fast NIS Search Trigger (5-digit NIS Bagian 1 support)
   const triggerNisSearch = async (
     s1: string,
-    s2: string,
-    s3: string,
+    s2?: string,
+    s3?: string,
     rawFallback?: string,
     isTypeChange = false
   ) => {
-    let searchStr = '';
-
-    if (s1 || s2 || s3) {
-      searchStr = `${s1.trim()} / ${s2.trim()} . ${s3.trim()}`;
-    } else if (rawFallback) {
-      searchStr = rawFallback.trim();
+    let queryTerm = s1.trim();
+    if (!queryTerm && rawFallback) {
+      queryTerm = rawFallback.trim();
     }
 
-    if (!searchStr.replace(/[^0-9a-zA-Z]/g, '')) {
+    if (!queryTerm) {
       setSelectedStudent(null);
+      setErrorMessage('');
       return;
     }
 
-    const normSearch = normalizeNis(searchStr);
+    const cleanDigits = queryTerm.replace(/\D/g, '');
     
-    // First try local cache just in case
-    let found = students.find((s) => s.nis.trim().toLowerCase() === searchStr.trim().toLowerCase());
-    if (!found) {
-      found = students.find((s) => normalizeNis(s.nis) === normSearch);
-    }
-    
+    // 1. First search in local memory cache
+    let found = students.find((s) => {
+      if (!s.nis) return false;
+      const sDigits = s.nis.replace(/\D/g, '');
+      const sNorm = normalizeNis(s.nis);
+      const queryNorm = normalizeNis(queryTerm);
+      return (
+        sNorm === queryNorm ||
+        sNorm.startsWith(queryNorm) ||
+        (cleanDigits.length >= 3 && sDigits.startsWith(cleanDigits))
+      );
+    });
+
     if (found) {
       populateStudentData(found);
-      if (!isTypeChange) setErrorMessage('');
+      setErrorMessage('');
       return;
     }
-    
-    // Only perform Firebase search on explicit button click to save quota
-    if (isTypeChange) {
-      setSelectedStudent(null);
+
+    if (isTypeChange && cleanDigits.length < 5) {
+      // Don't trigger remote DB query on typing until 5 digits are entered
       return;
     }
-    
+
     setErrorMessage('');
     setIsSearching(true);
     try {
-      const { getStudentByNis } = await import('@/services/firebaseService');
-      const remoteStudent = await getStudentByNis(searchStr);
-      
+      const { getStudentByNis } = await import('@/services/supabaseService');
+      const remoteStudent = await getStudentByNis(queryTerm);
+
       if (remoteStudent) {
         populateStudentData(remoteStudent);
+        setErrorMessage('');
       } else {
         setSelectedStudent(null);
-        setErrorMessage(`Siswa dengan NIS/NISN "${searchStr}" tidak ditemukan. Pastikan angka yang dimasukkan persis sesuai format.`);
+        setErrorMessage(
+          `Siswa dengan NIS "${queryTerm}" tidak ditemukan. Pastikan 5 digit awal NIS pada Bagian 1 sudah sesuai.`
+        );
       }
     } catch (err) {
-      console.error('Error fetching student:', err);
-      setErrorMessage('Terjadi kesalahan saat mencari data. Silakan coba lagi nanti.');
+      console.error('Error fetching student from Supabase:', err);
+      setErrorMessage('Terjadi kesalahan koneksi saat mencari data siswa. Silakan coba lagi.');
     } finally {
       setIsSearching(false);
     }
@@ -269,15 +276,17 @@ export const AngketForm: React.FC<AngketFormProps> = ({
 
   const handleSeg1Change = (val: string) => {
     if (/[^0-9]/.test(val)) {
-      setErrorMessage('❌ NIS hanya boleh berisi ANGKA. Karakter huruf atau simbol telah dihapus otomatis.');
-      setTimeout(() => setErrorMessage(''), 4000);
+      setErrorMessage('⚠️ NIS Bagian 1 hanya boleh berisi 5 digit ANGKA.');
+      setTimeout(() => setErrorMessage(''), 3500);
     }
-    const clean = val.replace(/[^0-9]/g, '');
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 5);
     setSeg1(clean);
-    if (clean.length >= 5) {
-      seg2Ref.current?.focus();
+
+    if (clean.length === 5) {
+      triggerNisSearch(clean, seg2, seg3, undefined, false);
+    } else if (clean.length < 5 && selectedStudent) {
+      setSelectedStudent(null);
     }
-    triggerNisSearch(clean, seg2, seg3, undefined, true);
   };
 
   const handleSeg2Change = (val: string) => {
@@ -481,14 +490,14 @@ export const AngketForm: React.FC<AngketFormProps> = ({
           {inputMode === 'segmented' ? (
             <div className="flex flex-col md:flex-row gap-3">
               {/* Segmented Input Wrapper */}
-              <div className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2 flex items-center justify-center gap-1.5 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition-all shadow-xs">
+              <div className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 flex items-center justify-center gap-1.5 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 transition-all shadow-xs">
                 {/* Segment 1 */}
                 <div className="relative flex-1 max-w-[130px]">
                   <input
                     ref={seg1Ref}
                     type="text"
                     inputMode="numeric"
-                    maxLength={6}
+                    maxLength={5}
                     placeholder="25082"
                     value={seg1}
                     onChange={(e) => handleSeg1Change(e.target.value)}
@@ -497,64 +506,58 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
-                    className="w-full text-center py-2 px-1.5 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-900 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-600 shadow-2xs"
+                    className="w-full text-center py-2 px-1.5 bg-white border border-emerald-300 rounded-lg font-mono font-bold text-emerald-950 text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-600 shadow-2xs"
                   />
-                  <span className="block text-[10px] text-center text-slate-400 font-semibold mt-0.5">Bagian 1</span>
+                  <span className="block text-[10px] text-center text-emerald-800 font-bold mt-0.5">
+                    Bagian 1 (5 Digit)
+                  </span>
                 </div>
 
                 {/* Symbol / */}
-                <span className="text-emerald-700 font-black text-xl sm:text-2xl px-1 select-none font-mono pb-4">/</span>
+                <span className="text-slate-400 font-black text-xl sm:text-2xl px-1 select-none font-mono pb-4">/</span>
 
-                {/* Segment 2 */}
+                {/* Segment 2 (Disabled / Auto-filled) */}
                 <div className="relative flex-1 max-w-[110px]">
                   <input
                     ref={seg2Ref}
                     type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="3258"
+                    disabled
+                    readOnly
+                    placeholder="----"
                     value={seg2}
-                    onChange={(e) => handleSeg2Change(e.target.value)}
-                    onKeyDown={handleSeg2KeyDown}
-                    onPaste={handlePasteSegment}
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    className="w-full text-center py-2 px-1.5 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-900 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-600 shadow-2xs"
+                    className="w-full text-center py-2 px-1.5 bg-slate-100 border border-slate-200 rounded-lg font-mono font-bold text-slate-500 text-xs sm:text-sm cursor-not-allowed select-none shadow-none"
                   />
-                  <span className="block text-[10px] text-center text-slate-400 font-semibold mt-0.5">Bagian 2</span>
+                  <span className="block text-[10px] text-center text-slate-400 font-semibold mt-0.5 flex items-center justify-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5 text-slate-400" />
+                    Bagian 2
+                  </span>
                 </div>
 
                 {/* Symbol . */}
-                <span className="text-emerald-700 font-black text-2xl sm:text-3xl px-1 select-none font-mono pb-4">.</span>
+                <span className="text-slate-400 font-black text-2xl sm:text-3xl px-1 select-none font-mono pb-4">.</span>
 
-                {/* Segment 3 */}
+                {/* Segment 3 (Disabled / Auto-filled) */}
                 <div className="relative flex-1 max-w-[100px]">
                   <input
                     ref={seg3Ref}
                     type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="009"
+                    disabled
+                    readOnly
+                    placeholder="---"
                     value={seg3}
-                    onChange={(e) => handleSeg3Change(e.target.value)}
-                    onKeyDown={handleSeg3KeyDown}
-                    onPaste={handlePasteSegment}
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    className="w-full text-center py-2 px-1.5 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-900 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-600 shadow-2xs"
+                    className="w-full text-center py-2 px-1.5 bg-slate-100 border border-slate-200 rounded-lg font-mono font-bold text-slate-500 text-xs sm:text-sm cursor-not-allowed select-none shadow-none"
                   />
-                  <span className="block text-[10px] text-center text-slate-400 font-semibold mt-0.5">Bagian 3</span>
+                  <span className="block text-[10px] text-center text-slate-400 font-semibold mt-0.5 flex items-center justify-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5 text-slate-400" />
+                    Bagian 3
+                  </span>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => triggerNisSearch(seg1, seg2, seg3)}
-                  disabled={isSearching}
-                  className="ml-auto px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1"
+                  onClick={() => triggerNisSearch(seg1)}
+                  disabled={isSearching || !seg1}
+                  className="ml-auto px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1.5"
                 >
                   {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
                   {isSearching ? 'Mencari...' : 'Cek NIS'}
@@ -577,18 +580,18 @@ export const AngketForm: React.FC<AngketFormProps> = ({
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder="Ketik NIS/NISN lengkap..."
+                  placeholder="Ketik 5 digit NIS..."
                   value={inputNis}
                   onChange={(e) => {
                     const val = e.target.value;
                     if (/[^0-9/.s-]/.test(val)) {
-                      setErrorMessage('❌ Mohon hanya memasukkan ANGKA untuk pencarian NIS/NISN.');
-                      setTimeout(() => setErrorMessage(''), 4000);
+                      setErrorMessage('⚠️ Mohon hanya memasukkan ANGKA untuk pencarian NIS.');
+                      setTimeout(() => setErrorMessage(''), 3500);
                     }
                     const clean = val.replace(/[^0-9/.s-]/g, '');
                     setInputNis(clean);
-                    if (clean.trim().length >= 3) {
-                      triggerNisSearch('', '', '', clean, true);
+                    if (clean.trim().length >= 5) {
+                      triggerNisSearch('', '', '', clean, false);
                     }
                   }}
                   className="w-full pl-4 pr-20 py-3 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-slate-900 text-base focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
@@ -596,7 +599,7 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                 <button
                   type="button"
                   onClick={() => triggerNisSearch('', '', '', inputNis)}
-                  disabled={isSearching}
+                  disabled={isSearching || !inputNis}
                   className="absolute right-2 top-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
                 >
                   {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
@@ -617,30 +620,41 @@ export const AngketForm: React.FC<AngketFormProps> = ({
             </div>
           )}
 
-          <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+          <p className="text-xs text-slate-600 font-medium flex items-center gap-1.5 bg-emerald-50/80 border border-emerald-200/60 p-2.5 rounded-xl">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-ping"></span>
             <span>
-              Siswa cukup memasukkan angka saja pada 3 kotak di atas. Simbol <code className="bg-slate-100 px-1 py-0.5 rounded text-emerald-800 font-mono font-bold">/</code> dan <code className="bg-slate-100 px-1 py-0.5 rounded text-emerald-800 font-mono font-bold">.</code> sudah terpasang otomatis.
+              <strong>Petunjuk:</strong> Cukup masukkan <strong>5 digit angka NIS</strong> pada Bagian 1. Bagian 2 & 3 akan terisi secara <strong>otomatis</strong> dari database.
             </span>
           </p>
+
+          {/* Interactive Searching Banner */}
+          {isSearching && (
+            <div className="p-3.5 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
+              <Loader2 className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
+              <span>Memeriksa database Supabase untuk NIS <strong>{seg1 || inputNis}</strong>...</span>
+            </div>
+          )}
 
           {/* Student Matched Box */}
           {selectedStudent ? (
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-black text-sm flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
                   ✓
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-900 text-base">
+                  <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
                     {selectedStudent.name}
+                    <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                      ✓ Bagian 2 & 3 Terisi Otomatis
+                    </span>
                   </h4>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-0.5">
-                    <span className="font-bold text-emerald-800">
+                    <span className="font-bold text-emerald-900">
                       NIS: {selectedStudent.nis}
                     </span>
                     <span>•</span>
-                    <span className="font-bold text-slate-800 bg-emerald-100 px-2 py-0.5 rounded">
+                    <span className="font-bold text-slate-800 bg-white border border-emerald-200 px-2 py-0.5 rounded">
                       Kelas: {selectedStudent.className}
                     </span>
                     <span>•</span>
@@ -666,18 +680,18 @@ export const AngketForm: React.FC<AngketFormProps> = ({
               </div>
 
               <span className="text-xs font-bold text-emerald-800 bg-emerald-200/60 px-3 py-1 rounded-full border border-emerald-300">
-                Data Otomatis Terhubung
+                Terhubung dengan Supabase
               </span>
             </div>
-          ) : (
+          ) : !isSearching && !errorMessage ? (
             <p className="text-xs text-slate-500 italic">
-              *Tips: Ketik NIS langsung atau klik &quot;Cari dari Daftar&quot; untuk menemukan nama siswa.
+              *Masukkan 5 digit NIS Anda untuk menampilkan data siswa secara otomatis.
             </p>
-          )}
+          ) : null}
 
           {errorMessage && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
+              <AlertCircle className="w-4.5 h-4.5 text-rose-500 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
