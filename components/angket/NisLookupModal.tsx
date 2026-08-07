@@ -1,138 +1,122 @@
 'use client';
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Student } from '@/types';
 import { normalizeClassName } from '@/lib/utils';
-import { Search, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Search, UserCheck, CheckCircle2, Loader2 } from 'lucide-react';
+import { getStudentsByClass } from '@/services/firebaseService';
 
 interface NisLookupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  students: Student[];
+  classes: any[];
   onSelectStudent: (student: Student) => void;
 }
 
 export const NisLookupModal: React.FC<NisLookupModalProps> = ({
   isOpen,
   onClose,
-  students,
+  classes,
   onSelectStudent,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedClassFilter, setSelectedClassFilter] = useState<string>('ALL');
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string>('');
+  const [classStudents, setClassStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const classesList = Array.from(new Set(students.map((s) => normalizeClassName(s.className))))
+  const classesList = Array.from(new Set((classes || []).map((c) => normalizeClassName(c.name))))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
-  const [serverResults, setServerResults] = useState<Student[]>([]);
-  const [isSearchingServer, setIsSearchingServer] = useState(false);
+  useEffect(() => {
+    if (isOpen && !selectedClassFilter && classesList.length > 0) {
+      setSelectedClassFilter(classesList[0]);
+    }
+  }, [isOpen, classesList, selectedClassFilter]);
+
+  useEffect(() => {
+    async function loadStudents() {
+      if (!selectedClassFilter || !isOpen) return;
+      setIsLoading(true);
+      try {
+        const students = await getStudentsByClass(selectedClassFilter);
+        setClassStudents(students);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadStudents();
+  }, [selectedClassFilter, isOpen]);
 
   const normalizeNis = (val: string) => val.replace(/[^0-9a-zA-Z]/g, '').toLowerCase();
 
-  const filteredStudents = students.filter((s) => {
+  const filteredStudents = classStudents.filter((s) => {
+    if (!searchTerm) return true;
     const rawTerm = searchTerm.trim().toLowerCase();
     const normTerm = normalizeNis(searchTerm);
-
     const matchesName = s.name.toLowerCase().includes(rawTerm);
     const matchesNisRaw = s.nis.toLowerCase().includes(rawTerm);
     const matchesNisNorm = normTerm.length > 0 && normalizeNis(s.nis).includes(normTerm);
-
-    const matchesSearch = matchesName || matchesNisRaw || matchesNisNorm;
-    const matchesClass = selectedClassFilter === 'ALL' || s.className === selectedClassFilter;
-
-    return matchesSearch && matchesClass;
+    return matchesName || matchesNisRaw || matchesNisNorm;
   });
-
-  // Debounced server search if local search returns empty or if local student list is empty
-  React.useEffect(() => {
-    const term = searchTerm.trim();
-    if (!term || term.length < 2) {
-      setServerResults([]);
-      return;
-    }
-
-    if (filteredStudents.length > 0) {
-      setServerResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsSearchingServer(true);
-      try {
-        const res = await fetch(`/api/student/lookup?q=${encodeURIComponent(term)}&class=${encodeURIComponent(selectedClassFilter)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.students)) {
-            setServerResults(data.students);
-          }
-        }
-      } catch (e) {
-        console.warn('Server lookup error in modal:', e);
-      } finally {
-        setIsSearchingServer(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm, selectedClassFilter, filteredStudents.length]);
-
-  const displayList = filteredStudents.length > 0 ? filteredStudents : serverResults;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Cari NIS / Nama Siswa"
-      subtitle="Ketik NIS atau Nama siswa untuk mengisi Angket Peminatan"
+      subtitle="Pilih kelas terlebih dahulu, lalu ketik nama atau NIS."
       maxWidth="2xl"
     >
       <div className="space-y-4">
         {/* Search & Class Filter */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari berdasarkan NIS (misal: 12301) atau Nama..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium text-slate-800"
-            />
-          </div>
-
           <select
             value={selectedClassFilter}
             onChange={(e) => setSelectedClassFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 w-full sm:w-48 shrink-0"
           >
-            <option value="ALL">Semua Kelas ({students.length})</option>
+            <option value="" disabled>Pilih Kelas</option>
             {classesList.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
           </select>
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama atau NIS di kelas ini..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium text-slate-800"
+            />
+          </div>
         </div>
 
         {/* Student List Grid */}
         <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
-          {isSearchingServer ? (
-            <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-              <p className="text-sm font-medium text-emerald-600 animate-pulse">
-                Mencari data siswa dari server...
-              </p>
+          {isLoading ? (
+            <div className="p-12 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mb-2" />
+              <p className="text-sm font-medium">Memuat data siswa kelas {selectedClassFilter}...</p>
             </div>
-          ) : displayList.length === 0 ? (
+          ) : !selectedClassFilter ? (
             <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
               <p className="text-sm font-medium text-slate-500">
-                {searchTerm
-                  ? `Tidak ada siswa yang cocok dengan pencarian "${searchTerm}"`
-                  : 'Ketik NIS atau Nama untuk melihat daftar siswa'}
+                Silakan pilih kelas terlebih dahulu.
+              </p>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <p className="text-sm font-medium text-slate-500">
+                Tidak ada siswa yang cocok dengan pencarian "{searchTerm}"
               </p>
             </div>
           ) : (
-            displayList.map((student) => (
+            filteredStudents.map((student) => (
               <button
                 key={student.id}
                 onClick={() => {
@@ -158,7 +142,6 @@ export const NisLookupModal: React.FC<NisLookupModalProps> = ({
                     </div>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-2">
                   {student.isRegistered ? (
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-100/60 px-2.5 py-1 rounded-md">

@@ -153,7 +153,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   ? 'Login Control Center Admin'
                   : activeTab === 'WALI_KELAS'
                   ? 'Login Portal Wali Kelas'
-                  : 'Login Darmawisata'}
+                  : 'Login SIM Darmawisata'}
               </h2>
             </div>
           </div>

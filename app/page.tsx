@@ -148,9 +148,9 @@ function HomePageContent() {
       return updated;
     });
     
-    // Batch deletion from local IndexedDB and Cloud SQL
-    await dbService.deleteBatchStudents(studentIds);
-    await dbService.enqueueTask('delete_batch_students', studentIds);
+    // Batch deletion from local IndexedDB and enqueue sync tasks for each deletion
+    await Promise.all(studentIds.map((id) => dbService.deleteStudent(id)));
+    await Promise.all(studentIds.map((id) => dbService.enqueueTask('delete_student', id)));
     
     showToast(`Berhasil menghapus ${studentIds.length} data siswa terpilih.`, 'info');
   };
@@ -161,12 +161,25 @@ function HomePageContent() {
   ) => {
     const studentMap = new Map<string, Student>();
     students.forEach((s) => studentMap.set(s.nis || s.id, s));
-    importedStudents.forEach((s) => studentMap.set(s.nis || s.id, s));
+    
+    // Merge imported students, reusing existing ID if matched by NIS to avoid duplicates in DB
+    const finalImportedStudents = importedStudents.map((imported) => {
+      const existing = studentMap.get(imported.nis || imported.id);
+      if (existing) {
+        return {
+          ...imported,
+          id: existing.id // MUST reuse the existing ID to overwrite in DB
+        };
+      }
+      return imported;
+    });
+
+    finalImportedStudents.forEach((s) => studentMap.set(s.nis || s.id, s));
     const combined = Array.from(studentMap.values());
 
     setStudents(combined);
-    await dbService.putStudents(importedStudents);
-    await dbService.enqueueTask('save_students', importedStudents);
+    await dbService.putStudents(finalImportedStudents);
+    await dbService.enqueueTask('save_students', finalImportedStudents);
 
     if (importedClasses && importedClasses.length > 0) {
       setClasses((prevClasses) => {
@@ -372,7 +385,7 @@ function HomePageContent() {
       <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
         <h3 className="font-extrabold text-lg tracking-tight">
-          SMK PGRI 2 PONOROGO — Darmawisata
+          SMK PGRI 2 PONOROGO — SIM DARMAWISATA
         </h3>
         <p className="text-xs text-slate-400">Menghubungkan ke Database Terdesentralisasi...</p>
         {loadError && <p className="text-xs text-red-500">{loadError}</p>}
@@ -401,6 +414,7 @@ function HomePageContent() {
       {activeTab === 'ANGKET' && (
         <AngketForm
           students={students}
+          classes={classes}
           settings={settings}
           onSaveStudent={handleSaveStudent}
           onNavigateToSurat={handleNavigateToSurat}

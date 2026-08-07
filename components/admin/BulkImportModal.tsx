@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Student, GenderType, WaveType, TShirtSize, WaiverType, SchoolClass } from '@/types';
+import { Student, GenderType, WaveType, TShirtSize, WaiverType, SchoolClass, DestinationType } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { normalizeClassName, sortClassesAlphabetically } from '@/lib/utils';
 import {
@@ -323,115 +323,94 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     };
   };
 
-  // Helper to parse flat Master Data Excel sheets (Backup format with columns: No, NIS, Nama Siswa, Kelas, etc.)
-  const parseFlatMasterDataWorkbook = (wb: XLSX.WorkBook): ParsedClassData[] => {
-    const allStudentsMap = new Map<string, Student[]>();
+  const mapFlatRowsToClassData = (rows: Record<string, any>[]): ParsedClassData[] => {
+    const mappedStudents: Student[] = rows.map((row, idx) => {
+      const findVal = (keys: string[]) => {
+        const foundKey = Object.keys(row).find((k) =>
+          keys.some((key) => k.toLowerCase().trim() === key.toLowerCase().trim() || k.toLowerCase().trim().includes(key.toLowerCase().trim()))
+        );
+        return foundKey ? String(row[foundKey]).trim() : '';
+      };
 
-    wb.SheetNames.forEach((sheetName) => {
-      const ws = wb.Sheets[sheetName];
-      const jsonRows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
-      if (!jsonRows || jsonRows.length === 0) return;
-
-      // Check if this sheet has keys matching Master Data format
-      const sample = jsonRows[0];
-      const keys = Object.keys(sample).map((k) => k.trim());
-      const hasNamaCol = keys.some((k) => /^nama/i.test(k) || k.toLowerCase().includes('siswa'));
-      const hasNisCol = keys.some((k) => /^nis/i.test(k));
-      const hasKelasCol = keys.some((k) => /^kelas/i.test(k));
-
-      if ((hasNamaCol || hasNisCol) && hasKelasCol) {
-        jsonRows.forEach((row, idx) => {
-          const getVal = (...possibleKeys: string[]) => {
-            for (const pk of possibleKeys) {
-              const matchedKey = Object.keys(row).find(
-                (k) => k.trim().toLowerCase() === pk.toLowerCase()
-              );
-              if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
-                const str = String(row[matchedKey]).trim();
-                if (str) return str;
-              }
-            }
-            return '';
-          };
-
-          const name = getVal('Nama Siswa', 'Nama', 'Nama_Siswa', 'Student Name', 'Name');
-          const classNameRaw = getVal('Kelas', 'Class', 'Nama Kelas');
-          if (!name || !classNameRaw) return;
-
-          const className = normalizeClassName(classNameRaw);
-          const nis = getVal('NIS', 'NISN', 'Nis', 'No NIS') || `NIS-${className.replace(/\s+/g, '')}-${idx + 1}`;
-
-          const genderRaw = getVal('Jenis Kelamin', 'Gender', 'JK', 'L/P').toUpperCase();
-          const gender: GenderType = genderRaw.includes('P') || genderRaw.includes('FEMALE') ? 'PEREMPUAN' : 'LAKI-LAKI';
-
-          const destinationRaw = getVal('Tujuan', 'Destination').toUpperCase();
-          let destination: DestinationType | undefined = undefined;
-          if (destinationRaw.includes('BALI')) destination = 'BALI';
-          else if (destinationRaw.includes('YOGYA')) destination = 'YOGYAKARTA';
-
-          const waveRaw = getVal('Gelombang', 'Wave').toUpperCase();
-          let wave: WaveType | undefined = undefined;
-          if (waveRaw.includes('BALI_GEL_1') || waveRaw.includes('GEL 1 BALI') || waveRaw.includes('BALI 1')) wave = 'BALI_GEL_1';
-          else if (waveRaw.includes('BALI_GEL_2') || waveRaw.includes('GEL 2 BALI') || waveRaw.includes('BALI 2')) wave = 'BALI_GEL_2';
-          else if (waveRaw.includes('YOGYA_GEL_1') || waveRaw.includes('GEL 1 YOGYA') || waveRaw.includes('YOGYA 1')) wave = 'YOGYA_GEL_1';
-
-          const sizeRaw = getVal('Ukuran Kaos', 'Ukuran', 'Kaos', 'T-Shirt', 'Size').toUpperCase();
-          const validSizes: TShirtSize[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
-          const tShirtSize = validSizes.includes(sizeRaw as TShirtSize) ? (sizeRaw as TShirtSize) : undefined;
-
-          const parentName = getVal('Orang Tua', 'Nama Orang Tua', 'Nama Ortu', 'Parent Name') || undefined;
-          const parentPhone = getVal('WA Ortu', 'No WA Ortu', 'Hp Ortu', 'Parent Phone') || undefined;
-          const studentPhone = getVal('WA Siswa', 'No WA Siswa', 'Hp Siswa', 'Student Phone') || undefined;
-          const medicalHistory = getVal('Riwayat Medis', 'Riwayat Penyakit', 'Penyakit') || undefined;
-
-          const waiverRaw = getVal('Beasiswa/Jalur', 'Beasiswa', 'Jalur', 'Waiver').toUpperCase();
-          let waiverType: WaiverType = 'NONE';
-          if (waiverRaw.includes('25')) waiverType = '25%';
-          else if (waiverRaw.includes('50')) waiverType = '50%';
-
-          const busStr = getVal('Bus #', 'Bus', 'No Bus');
-          const busNumber = busStr && !isNaN(parseInt(busStr)) ? parseInt(busStr) : undefined;
-
-          const roomStr = getVal('Kamar #', 'Kamar', 'No Kamar');
-          const roomNumber = roomStr && !isNaN(parseInt(roomStr)) ? parseInt(roomStr) : undefined;
-
-          const statusAngketRaw = getVal('Status Angket', 'Status', 'Is Registered').toLowerCase();
-          const isRegistered =
-            statusAngketRaw.includes('sudah') ||
-            statusAngketRaw.includes('terisi') ||
-            statusAngketRaw === 'true' ||
-            Boolean(destination);
-
-          const studentObj: Student = {
-            id: `imp-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
-            nis,
-            name,
-            className,
-            gender,
-            destination,
-            wave,
-            tShirtSize,
-            parentName,
-            parentPhone,
-            studentPhone,
-            medicalHistory,
-            waiverType,
-            busNumber,
-            roomNumber,
-            isRegistered,
-            updatedAt: new Date().toISOString(),
-          };
-
-          if (!allStudentsMap.has(className)) {
-            allStudentsMap.set(className, []);
-          }
-          allStudentsMap.get(className)!.push(studentObj);
-        });
+      const name = findVal(['nama siswa', 'nama']);
+      const nis = findVal(['nis', 'nisn', 'nomor induk']);
+      const className = normalizeClassName(findVal(['kelas', 'class'])) || 'XII TKR 1';
+      
+      const rawGender = findVal(['jenis kelamin', 'gender', 'l/p', 'jk']).toUpperCase();
+      let gender: GenderType = 'LAKI-LAKI';
+      if (rawGender.includes('P') || rawGender.includes('PEREMPUAN') || rawGender.includes('FEMALE')) {
+        gender = 'PEREMPUAN';
       }
+
+      const rawDest = findVal(['tujuan', 'destination']).toUpperCase();
+      let destination: DestinationType | undefined = undefined;
+      if (rawDest.includes('BALI')) destination = 'BALI';
+      else if (rawDest.includes('YOGYAKARTA') || rawDest.includes('YOGYA') || rawDest.includes('JOGJA')) destination = 'YOGYAKARTA';
+
+      const rawWave = findVal(['gelombang', 'wave']).toUpperCase();
+      let wave: WaveType | undefined = undefined;
+      if (rawWave.includes('BALI_GEL_1') || rawWave.includes('BALI GELOMBANG 1') || (rawWave.includes('BALI') && rawWave.includes('1'))) {
+        wave = 'BALI_GEL_1';
+      } else if (rawWave.includes('BALI_GEL_2') || rawWave.includes('BALI GELOMBANG 2') || (rawWave.includes('BALI') && rawWave.includes('2'))) {
+        wave = 'BALI_GEL_2';
+      } else if (rawWave.includes('YOGYA_GEL_1') || rawWave.includes('YOGYA GELOMBANG 1') || rawWave.includes('YOGYAKARTA') || rawWave.includes('YOGYA')) {
+        wave = 'YOGYA_GEL_1';
+      }
+
+      const rawSize = findVal(['ukuran kaos', 'ukuran', 'tshirt', 'kaos']).toUpperCase();
+      const validSizes: TShirtSize[] = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+      const tShirtSize = validSizes.find((s) => s === rawSize || rawSize.includes(s)) as TShirtSize | undefined;
+
+      const parentName = findVal(['orang tua', 'nama ortu', 'wali murid', 'ortu']);
+      const parentPhone = findVal(['wa ortu', 'telepon ortu', 'no ortu', 'hp ortu', 'kontak ortu']);
+      const studentPhone = findVal(['wa siswa', 'telepon siswa', 'no siswa', 'hp siswa', 'kontak siswa']);
+      const medicalHistory = findVal(['riwayat medis', 'riwayat penyakit', 'medis', 'penyakit']);
+      
+      const rawWaiver = findVal(['beasiswa', 'jalur', 'diskon', 'potongan', 'waiver']).toUpperCase();
+      let waiverType: WaiverType = 'NONE';
+      if (rawWaiver.includes('50')) waiverType = '50%';
+      else if (rawWaiver.includes('25')) waiverType = '25%';
+
+      const rawBus = findVal(['bus #', 'bus', 'nomor bus', 'no bus']);
+      const busNumber = rawBus ? parseInt(rawBus.replace(/[^0-9]/g, ''), 10) || undefined : undefined;
+
+      const rawRoom = findVal(['kamar #', 'kamar', 'nomor kamar', 'no kamar']);
+      const roomNumber = rawRoom ? parseInt(rawRoom.replace(/[^0-9]/g, ''), 10) || undefined : undefined;
+
+      const isRegistered = Boolean(destination === 'BALI' || destination === 'YOGYAKARTA');
+
+      return {
+        id: `imp-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+        nis: nis || `NIS-${className.replace(/\s+/g, '')}-${idx + 1}`,
+        name: name || 'Siswa Tanpa Nama',
+        className,
+        gender,
+        destination,
+        wave,
+        tShirtSize,
+        parentName: parentName || undefined,
+        parentPhone: parentPhone || undefined,
+        studentPhone: studentPhone || undefined,
+        medicalHistory: medicalHistory || undefined,
+        waiverType,
+        busNumber,
+        roomNumber,
+        isRegistered,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    // Group by className
+    const classGroups: Record<string, Student[]> = {};
+    mappedStudents.forEach((student) => {
+      if (!classGroups[student.className]) {
+        classGroups[student.className] = [];
+      }
+      classGroups[student.className].push(student);
     });
 
     const results: ParsedClassData[] = [];
-    allStudentsMap.forEach((students, className) => {
+    Object.entries(classGroups).forEach(([className, students]) => {
       results.push({
         className,
         homeroomTeacher: `Wali Kelas ${className}`,
@@ -444,20 +423,39 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
   // Process XLSX Workbook Object
   const processXlsxWorkbook = (wb: XLSX.WorkBook) => {
-    // 1. Try parsing as Flat Master Data Table (backup format)
-    const flatResults = parseFlatMasterDataWorkbook(wb);
-    if (flatResults.length > 0) {
-      setParsedClassesData(flatResults);
-      setErrorMsg('');
-      const totalSiswa = flatResults.reduce((acc, c) => acc + c.students.length, 0);
-      setSuccessMsg(
-        `Berhasil membaca format Backup Excel Master Data (${flatResults.length} Kelas, Total ${totalSiswa} Siswa lengkap dengan Bus, Kamar, WA, & Status Angket)!`
-      );
-      return;
+    const results: ParsedClassData[] = [];
+    let isFlatBackupDetected = false;
+    let flatRows: Record<string, any>[] = [];
+
+    // Check if any sheet is a flat table backup
+    for (const sheetName of wb.SheetNames) {
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+      if (rows.length > 0) {
+        const firstRowKeys = Object.keys(rows[0]).map((k) => k.toLowerCase().trim());
+        const hasNamaSiswa = firstRowKeys.some((k) => k.includes('nama siswa') || k === 'nama');
+        const hasKelas = firstRowKeys.some((k) => k.includes('kelas') || k === 'class');
+        
+        if (hasNamaSiswa && hasKelas) {
+          isFlatBackupDetected = true;
+          flatRows = rows;
+          break;
+        }
+      }
     }
 
-    // 2. Fallback to multi-sheet class templates (Sheet = Class Name, B7:B45 = Student Names, Cell L2 = Wali Kelas)
-    const results: ParsedClassData[] = [];
+    if (isFlatBackupDetected && flatRows.length > 0) {
+      const mapped = mapFlatRowsToClassData(flatRows);
+      if (mapped.length > 0) {
+        setParsedClassesData(mapped);
+        setErrorMsg('');
+        const totalSiswa = flatRows.length;
+        setSuccessMsg(`Berhasil mendeteksi format Backup! Terbaca ${mapped.length} kelas dengan total ${totalSiswa} siswa beserta data lengkap (Tujuan, Gelombang, Bus, Kamar, Orang Tua, Kontak, dll).`);
+      } else {
+        setErrorMsg('Format Backup terdeteksi kosong atau tidak valid.');
+      }
+      return;
+    }
 
     wb.SheetNames.forEach((sheetName) => {
       // Ignore sheets like "Wali Kelas", "Rekap", etc.
@@ -549,25 +547,40 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       };
       reader.readAsBinaryString(selectedFile);
     } else if (fileName.endsWith('.csv')) {
-      // CSV File mapping fallback
-      setIsFlatTableMode(true);
       Papa.parse(selectedFile, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
           if (results.data && results.data.length > 0) {
             const rawRows = results.data as Record<string, any>[];
-            const detectedHeaders = Object.keys(rawRows[0] || {});
-            setHeaders(detectedHeaders);
-            setParsedRows(rawRows);
+            const detectedHeaders = Object.keys(rawRows[0] || {}).map((h) => h.toLowerCase().trim());
+            const hasNamaSiswa = detectedHeaders.some((h) => h.includes('nama siswa') || h === 'nama');
+            const hasKelas = detectedHeaders.some((h) => h.includes('kelas') || h === 'class');
 
-            // Auto detect
-            detectedHeaders.forEach((c) => {
-              const lower = c.toLowerCase().trim();
-              if (!colNis && (lower.includes('nis') || lower.includes('id'))) setColNis(c);
-              if (!colName && (lower.includes('nama') || lower.includes('name'))) setColName(c);
-              if (!colClass && (lower.includes('kelas') || lower.includes('class'))) setColClass(c);
-            });
+            if (hasNamaSiswa && hasKelas) {
+              setIsFlatTableMode(false);
+              const mapped = mapFlatRowsToClassData(rawRows);
+              if (mapped.length > 0) {
+                setParsedClassesData(mapped);
+                setErrorMsg('');
+                setSuccessMsg(`Berhasil mendeteksi format Backup CSV! Terbaca ${mapped.length} kelas dengan total ${rawRows.length} siswa beserta data lengkap.`);
+              } else {
+                setErrorMsg('Format CSV Backup terdeteksi kosong atau tidak valid.');
+              }
+            } else {
+              setIsFlatTableMode(true);
+              const detectedHeadersRaw = Object.keys(rawRows[0] || {});
+              setHeaders(detectedHeadersRaw);
+              setParsedRows(rawRows);
+
+              // Auto detect
+              detectedHeadersRaw.forEach((c) => {
+                const lower = c.toLowerCase().trim();
+                if (!colNis && (lower.includes('nis') || lower.includes('id'))) setColNis(c);
+                if (!colName && (lower.includes('nama') || lower.includes('name'))) setColName(c);
+                if (!colClass && (lower.includes('kelas') || lower.includes('class'))) setColClass(c);
+              });
+            }
           }
         },
       });
@@ -985,10 +998,10 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
           >
             {isProcessing ? (
-              <span>Mengimpor ke Cloud SQL...</span>
+              <span>Mengimpor ke Firebase...</span>
             ) : (
               <>
-                <Upload className="w-4 h-4" /> Import {totalSiswaParsed || parsedRows.length} Siswa ke Cloud SQL
+                <Upload className="w-4 h-4" /> Import {totalSiswaParsed || parsedRows.length} Siswa ke Firebase
               </>
             )}
           </button>

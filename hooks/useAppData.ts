@@ -169,8 +169,9 @@ export function useAppData() {
     async function backgroundDataSync() {
       setIsSyncing(true);
       try {
+        const shouldFetchStudents = currentUser.role === 'ADMIN' || currentUser.role === 'WALI_KELAS';
         const [rawCachedStudents, rawCachedClasses, cachedSettings, cachedRundowns] = await Promise.all([
-          dbService.getAllStudents(),
+          shouldFetchStudents ? dbService.getAllStudents() : Promise.resolve([]),
           dbService.getAllClasses(),
           dbService.getSettings(),
           dbService.getAllRundowns(),
@@ -188,7 +189,6 @@ export function useAppData() {
             cachedStudents,
             currentStgs.defaultRoomCapacity
           );
-
           setStudents(cachedStudents);
           setClasses(cachedClasses);
           setSettings(currentStgs);
@@ -209,7 +209,7 @@ export function useAppData() {
 
         // Fetch fresh authoritative data from Firebase
         const [initialStds, initialClss, initialStgs, initialRdns] = await Promise.all([
-          getInitialStudents(),
+          shouldFetchStudents ? getInitialStudents() : Promise.resolve([]),
           getInitialClasses(),
           getInitialSettings(),
           getInitialRundowns(),
@@ -303,7 +303,7 @@ export function useAppData() {
         window.removeEventListener('online', handleOnline);
       };
     }
-  }, [autoAllocateAllWhenClosed, checkIsAngketClosed]);
+  }, [autoAllocateAllWhenClosed, checkIsAngketClosed, currentUser.role]);
 
   // Keep LocalStorage cache in sync with state updates after initial load
   useEffect(() => {

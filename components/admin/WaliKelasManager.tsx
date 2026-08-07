@@ -112,7 +112,7 @@ export const WaliKelasManager: React.FC<WaliKelasManagerProps> = ({
     const username = `wali_${cls.name.replace(/\s+/g, '_').toLowerCase()}`;
     const password = cls.teacherPassword || 'wali123';
     
-    const message = `Yth. Bapak/Ibu Wali Kelas ${cls.name} (${cls.homeroomTeacher}),\n\nBerikut adalah info akses (kredensial) login Anda ke Darmawisata ${settings.schoolName || 'SMK PGRI 2 Ponorogo'}:\n\n- Kelas: ${cls.name}\n- Username: ${username}\n- Password: ${password}\n\nSilakan gunakan akun ini untuk masuk ke dashboard, memonitor keaktifan angket siswa, dan mengunduh berkas laporan.\n\nLink Dashboard: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nTerima kasih.`;
+    const message = `Yth. Bapak/Ibu Wali Kelas ${cls.name} (${cls.homeroomTeacher}),\n\nBerikut adalah info akses (kredensial) login Anda ke SIM Darmawisata ${settings.schoolName || 'SMK PGRI 2 Ponorogo'}:\n\n- Kelas: ${cls.name}\n- Username: ${username}\n- Password: ${password}\n\nSilakan gunakan akun ini untuk masuk ke dashboard, memonitor keaktifan angket siswa, dan mengunduh berkas laporan.\n\nLink Dashboard: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nTerima kasih.`;
     
     const formattedPhone = cls.teacherPhone ? cls.teacherPhone.replace(/[^0-9]/g, '') : '';
     const phoneWithCountry = formattedPhone.startsWith('0') 

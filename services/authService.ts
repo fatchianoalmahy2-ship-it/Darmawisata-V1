@@ -1,5 +1,5 @@
 import { AuthUser, UserRole, AdminCredentials, SchoolClass } from '@/types';
-import { getAdminCredentialsFirestore, saveAdminCredentialsFirestore } from './firebaseService';
+import { getAdminCredentialsFirestore, saveAdminCredentialsFirestore, getDb, getFirebaseSDK } from './firebaseService';
 
 const AUTH_SESSION_KEY = 'smk_pgri_2_auth_session';
 const ADMIN_CREDS_KEY = 'smk_pgri_2_admin_creds';
@@ -139,18 +139,19 @@ export class AuthService {
     let actualCustomPassword = customPassword;
 
     try {
-      const res = await fetch('/api/db');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.classes)) {
-          const classData = data.classes.find((c: SchoolClass) => c.name === className);
-          if (classData?.teacherPassword) {
-            actualCustomPassword = classData.teacherPassword;
-          }
+      const db = await getDb();
+      if (db) {
+        const sdk = await getFirebaseSDK();
+        const classesRef = sdk.collection(db, 'classes');
+        const q = sdk.query(classesRef, sdk.where('name', '==', className));
+        const snap = await sdk.getDocs(q);
+        if (!snap.empty) {
+          const classData = snap.docs[0].data() as SchoolClass;
+          actualCustomPassword = classData.teacherPassword;
         }
       }
     } catch (err) {
-      console.warn('Failed to fetch fresh class credentials from Cloud SQL:', err);
+      console.warn('Failed to fetch fresh class credentials from Firestore:', err);
     }
 
     const isValid = actualCustomPassword

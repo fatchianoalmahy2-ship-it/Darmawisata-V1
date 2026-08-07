@@ -20,10 +20,12 @@ import {
   Bus,
   BedDouble,
   Info,
+  Loader2,
 } from 'lucide-react';
 
 interface AngketFormProps {
   students: Student[];
+  classes: any[];
   settings?: AppSettings;
   onSaveStudent: (updatedStudent: Student) => void;
   onNavigateToSurat: (student: Student) => void;
@@ -31,6 +33,7 @@ interface AngketFormProps {
 
 export const AngketForm: React.FC<AngketFormProps> = ({
   students,
+  classes,
   settings,
   onSaveStudent,
   onNavigateToSurat,
@@ -201,7 +204,9 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     }
   };
 
-  // Strict and Accurate NIS Search Trigger with Auto-Sanitization and Server Fallback
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Strict and Accurate NIS Search Trigger
   const triggerNisSearch = async (
     s1: string,
     s2: string,
@@ -209,16 +214,10 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     rawFallback?: string,
     isTypeChange = false
   ) => {
-    setErrorMessage('');
-
-    // Auto-sanitize segments (strip non-alphanumeric except spaces)
-    const cleanS1 = s1.trim().replace(/[^0-9a-zA-Z]/g, '');
-    const cleanS2 = s2.trim().replace(/[^0-9a-zA-Z]/g, '');
-    const cleanS3 = s3.trim().replace(/[^0-9a-zA-Z]/g, '');
-
     let searchStr = '';
-    if (cleanS1 || cleanS2 || cleanS3) {
-      searchStr = `${cleanS1} / ${cleanS2} . ${cleanS3}`;
+
+    if (s1 || s2 || s3) {
+      searchStr = `${s1.trim()} / ${s2.trim()} . ${s3.trim()}`;
     } else if (rawFallback) {
       searchStr = rawFallback.trim();
     }
@@ -229,68 +228,79 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     }
 
     const normSearch = normalizeNis(searchStr);
-
-    // 1. Local Exact raw match
+    
+    // First try local cache just in case
     let found = students.find((s) => s.nis.trim().toLowerCase() === searchStr.trim().toLowerCase());
-
-    // 2. Local Exact normalized match
     if (!found) {
       found = students.find((s) => normalizeNis(s.nis) === normSearch);
     }
-
-    // 3. Local Substring match ONLY if not a type change and normalized search term is long enough (>= 4 chars)
-    if (!found && !isTypeChange && normSearch.length >= 4) {
-      found = students.find((s) => normalizeNis(s.nis) === normSearch || normalizeNis(s.nis).startsWith(normSearch));
-    }
-
+    
     if (found) {
       populateStudentData(found);
+      if (!isTypeChange) setErrorMessage('');
       return;
     }
-
-    // 4. Server Fallback Lookup (Lightweight API call if not found in local memory)
-    if (normSearch.length >= 3) {
-      try {
-        const res = await fetch(`/api/student/lookup?nis=${encodeURIComponent(normSearch)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.students) && data.students.length > 0) {
-            const serverFound = data.students[0];
-            populateStudentData(serverFound);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Server fallback NIS search failed:', err);
-      }
+    
+    // Only perform Firebase search on explicit button click to save quota
+    if (isTypeChange) {
+      setSelectedStudent(null);
+      return;
     }
-
-    setSelectedStudent(null);
-    // Only show error on explicit search or if they typed a long term that doesn't match
-    if (!isTypeChange && normSearch.length >= 3) {
-      setErrorMessage(`Siswa dengan NIS "${searchStr}" tidak ditemukan. Silakan periksa kembali nomor NIS Anda.`);
+    
+    setErrorMessage('');
+    setIsSearching(true);
+    try {
+      const { getStudentByNis } = await import('@/services/firebaseService');
+      const remoteStudent = await getStudentByNis(searchStr);
+      
+      if (remoteStudent) {
+        populateStudentData(remoteStudent);
+      } else {
+        setSelectedStudent(null);
+        setErrorMessage(`Siswa dengan NIS/NISN "${searchStr}" tidak ditemukan. Pastikan angka yang dimasukkan persis sesuai format.`);
+      }
+    } catch (err) {
+      console.error('Error fetching student:', err);
+      setErrorMessage('Terjadi kesalahan saat mencari data. Silakan coba lagi nanti.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
   const handleSeg1Change = (val: string) => {
+    if (/[^0-9]/.test(val)) {
+      setErrorMessage('❌ NIS hanya boleh berisi ANGKA. Karakter huruf atau simbol telah dihapus otomatis.');
+      setTimeout(() => setErrorMessage(''), 4000);
+    }
     const clean = val.replace(/[^0-9]/g, '');
     setSeg1(clean);
     if (clean.length >= 5) {
       seg2Ref.current?.focus();
     }
+    triggerNisSearch(clean, seg2, seg3, undefined, true);
   };
 
   const handleSeg2Change = (val: string) => {
+    if (/[^0-9]/.test(val)) {
+      setErrorMessage('❌ NIS hanya boleh berisi ANGKA. Karakter huruf atau simbol telah dihapus otomatis.');
+      setTimeout(() => setErrorMessage(''), 4000);
+    }
     const clean = val.replace(/[^0-9]/g, '');
     setSeg2(clean);
     if (clean.length >= 4) {
       seg3Ref.current?.focus();
     }
+    triggerNisSearch(seg1, clean, seg3, undefined, true);
   };
 
   const handleSeg3Change = (val: string) => {
+    if (/[^0-9]/.test(val)) {
+      setErrorMessage('❌ NIS hanya boleh berisi ANGKA. Karakter huruf atau simbol telah dihapus otomatis.');
+      setTimeout(() => setErrorMessage(''), 4000);
+    }
     const clean = val.replace(/[^0-9]/g, '');
     setSeg3(clean);
+    triggerNisSearch(seg1, seg2, clean, undefined, true);
   };
 
   const handlePasteSegment = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -302,30 +312,18 @@ export const AngketForm: React.FC<AngketFormProps> = ({
     setSeg1(parsed.seg1);
     setSeg2(parsed.seg2);
     setSeg3(parsed.seg3);
-  };
-
-  const handleSeg1KeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      triggerNisSearch(seg1, seg2, seg3);
-    }
+    triggerNisSearch(parsed.seg1, parsed.seg2, parsed.seg3, pasted, false);
   };
 
   const handleSeg2KeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !seg2) {
       seg1Ref.current?.focus();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      triggerNisSearch(seg1, seg2, seg3);
     }
   };
 
   const handleSeg3KeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !seg3) {
       seg2Ref.current?.focus();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      triggerNisSearch(seg1, seg2, seg3);
     }
   };
 
@@ -494,7 +492,6 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                     placeholder="25082"
                     value={seg1}
                     onChange={(e) => handleSeg1Change(e.target.value)}
-                    onKeyDown={handleSeg1KeyDown}
                     onPaste={handlePasteSegment}
                     autoComplete="off"
                     autoCapitalize="none"
@@ -556,10 +553,11 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                 <button
                   type="button"
                   onClick={() => triggerNisSearch(seg1, seg2, seg3)}
-                  className="ml-auto px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1"
+                  disabled={isSearching}
+                  className="ml-auto px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1"
                 >
-                  <Search className="w-3.5 h-3.5" />
-                  Cek NIS
+                  {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  {isSearching ? 'Mencari...' : 'Cek NIS'}
                 </button>
               </div>
 
@@ -581,11 +579,16 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                   type="text"
                   placeholder="Ketik NIS/NISN lengkap..."
                   value={inputNis}
-                  onChange={(e) => setInputNis(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      triggerNisSearch('', '', '', inputNis);
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/[^0-9/.s-]/.test(val)) {
+                      setErrorMessage('❌ Mohon hanya memasukkan ANGKA untuk pencarian NIS/NISN.');
+                      setTimeout(() => setErrorMessage(''), 4000);
+                    }
+                    const clean = val.replace(/[^0-9/.s-]/g, '');
+                    setInputNis(clean);
+                    if (clean.trim().length >= 3) {
+                      triggerNisSearch('', '', '', clean, true);
                     }
                   }}
                   className="w-full pl-4 pr-20 py-3 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-slate-900 text-base focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
@@ -593,9 +596,11 @@ export const AngketForm: React.FC<AngketFormProps> = ({
                 <button
                   type="button"
                   onClick={() => triggerNisSearch('', '', '', inputNis)}
-                  className="absolute right-2 top-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors"
+                  disabled={isSearching}
+                  className="absolute right-2 top-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
                 >
-                  Cek
+                  {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  {isSearching ? 'Cek...' : 'Cek'}
                 </button>
               </div>
 
@@ -1103,7 +1108,7 @@ export const AngketForm: React.FC<AngketFormProps> = ({
       <NisLookupModal
         isOpen={isLookupOpen}
         onClose={() => setIsLookupOpen(false)}
-        students={students}
+        classes={classes}
         onSelectStudent={handleSelectFromLookup}
       />
 
