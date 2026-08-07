@@ -93,25 +93,36 @@ export async function getDb() {
 // ----------------------------------------------------------------------------
 export async function getStudentByNis(nis: string): Promise<Student | null> {
   const db = await getDb();
-  if (!db) return null;
+  const cleanNis = nis.trim();
+  const normSearch = normalizeNis(cleanNis);
+
+  const findInArray = (arr: Student[]) => {
+    return arr.find((s) => s.nis.trim().toLowerCase() === cleanNis.toLowerCase() || normalizeNis(s.nis) === normSearch);
+  };
+
+  if (!db) {
+    return findInArray(sampleStudentsData as Student[]) || null;
+  }
+
   try {
     const sdk = await getFirebaseSDK();
-    if (!sdk) return null;
-    
-    // Using standard Firestore query logic
-    const q = sdk.query(sdk.collection(db, 'students'), sdk.where('nis', '==', nis));
+    if (!sdk) return findInArray(sampleStudentsData as Student[]) || null;
+
+    const q = sdk.query(sdk.collection(db, 'students'), sdk.where('nis', '==', cleanNis));
     const snap = await sdk.getDocs(q);
-    
+
     if (!snap.empty) {
       const doc = snap.docs[0];
       const s = { id: doc.id, ...doc.data() } as Student;
       s.className = normalizeClassName(s.className);
       return s;
     }
-    return null;
+
+    const all = await getInitialStudents();
+    return findInArray(all) || null;
   } catch (err) {
     console.error('Error fetching student by NIS:', err);
-    return null;
+    return findInArray(sampleStudentsData as Student[]) || null;
   }
 }
 
