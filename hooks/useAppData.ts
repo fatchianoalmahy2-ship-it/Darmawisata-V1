@@ -169,9 +169,9 @@ export function useAppData() {
     async function backgroundDataSync() {
       setIsSyncing(true);
       try {
-        const shouldFetchStudents = currentUser.role === 'ADMIN' || currentUser.role === 'WALI_KELAS';
+        const shouldFetchStudents = true;
         const [rawCachedStudents, rawCachedClasses, cachedSettings, cachedRundowns] = await Promise.all([
-          shouldFetchStudents ? dbService.getAllStudents() : Promise.resolve([]),
+          dbService.getAllStudents(),
           dbService.getAllClasses(),
           dbService.getSettings(),
           dbService.getAllRundowns(),
@@ -205,6 +205,11 @@ export function useAppData() {
             setIsSyncing(false);
             return;
           }
+        }
+
+        // Ensure pending background tasks are flushed to Firebase before fetching
+        if (!dbService.isSyncing) {
+          await dbService.triggerSync();
         }
 
         // Fetch fresh authoritative data from Firebase

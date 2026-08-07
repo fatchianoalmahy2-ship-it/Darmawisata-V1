@@ -141,11 +141,11 @@ export async function getStudentsByClass(className: string): Promise<Student[]> 
 
 export async function getInitialStudents(): Promise<Student[]> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return sampleStudentsData as Student[];
 
   try {
     const sdk = await getFirebaseSDK();
-    if (!sdk) return [];
+    if (!sdk) return sampleStudentsData as Student[];
 
     const students = await studentsRepo.getAll();
 
@@ -176,20 +176,23 @@ export async function getInitialStudents(): Promise<Student[]> {
       const statusSnap = await sdk.getDoc(statusRef);
       isSeeded = statusSnap.exists() && statusSnap.data()?.studentsSeeded === true;
     } catch (e) {
-      isSeeded = true;
+      isSeeded = false;
     }
 
     if (!isSeeded) {
+      const initial = sampleStudentsData as Student[];
+      await saveStudents(initial);
       try {
         await sdk.setDoc(statusRef, { studentsSeeded: true }, { merge: true });
       } catch (e) {
         // Ignore write failure on quota
       }
+      return initial;
     }
     return [];
   } catch (err) {
     console.warn('Error loading students from Firestore (falling back to cached/local):', err);
-    return [];
+    return sampleStudentsData as Student[];
   }
 }
 
